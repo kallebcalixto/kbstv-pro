@@ -1,99 +1,85 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<title>KBS TV Player PRO</title>
-
-<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-
-<style>
-body {
-  margin: 0;
-  background: #000;
-  color: #fff;
-  font-family: Arial;
-  display: flex;
-}
-
-#menu {
-  width: 320px;
-  background: #111;
-  height: 100vh;
-  overflow-y: auto;
-  border-right: 2px solid #222;
-}
-
-#menu h2 {
-  margin: 0;
-  padding: 15px;
-  text-align: center;
-  background: #000;
-}
-
-.canal {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px;
-  cursor: pointer;
-  border-bottom: 1px solid #222;
-}
-
-.canal:hover {
-  background: #222;
-}
-
-.canal img {
-  width: 40px;
-  height: 40px;
-  border-radius: 5px;
-}
-
-#player {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-video {
-  width: 95%;
-  max-width: 1100px;
-  border-radius: 10px;
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KBS TV PRO - Elite Player</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
 </head>
-
 <body>
 
 <div id="menu">
-  <h2>📺 KBS TV</h2>
-  <div id="lista"></div>
+    <div class="header-logo">
+        <h2>📺 KBS TV <span style="color:var(--accent-color)">PRO</span></h2>
+    </div>
+    <div id="lista"></div>
 </div>
 
-<div id="player">
-  <video id="video" controls autoplay></video>
+<div id="main-content">
+    <div id="status-overlay">
+        <div id="status-dot" class="dot"></div>
+        <span id="status-text">SINAL ESTÁVEL</span>
+    </div>
+    <div id="player-container">
+        <video id="video" controls autoplay playsinline></video>
+    </div>
 </div>
 
 <script>
 const video = document.getElementById('video');
 const lista = document.getElementById('lista');
+const statusText = document.getElementById('status-text');
+const statusDot = document.getElementById('status-dot');
 
 let hls;
+let currentUrl = "";
+let lastTime = 0;
+let stallCount = 0;
 
-function tocar(url) {
-  if (hls) hls.destroy();
-
-  if (Hls.isSupported()) {
-    hls = new Hls();
-    hls.loadSource(url);
-    hls.attachMedia(video);
-  } else {
-    video.src = url;
-  }
+// Lógica Anti-Trava: Reinicia se o vídeo parar por 5 segundos
+function startAntiStall() {
+    setInterval(() => {
+        if (!video.paused) {
+            if (video.currentTime === lastTime) {
+                stallCount++;
+                statusText.innerText = `RECUPERANDO SINAL EM ${5 - stallCount}s...`;
+                statusDot.className = "dot loading";
+                if (stallCount >= 5) {
+                    console.log("Anti-Trava: Reiniciando stream...");
+                    tocar(currentUrl);
+                    stallCount = 0;
+                }
+            } else {
+                stallCount = 0;
+                statusText.innerText = "SINAL AO VIVO";
+                statusDot.className = "dot";
+                lastTime = video.currentTime;
+            }
+        }
+    }, 1000);
 }
 
-// 🔥 SUA LISTA
+function tocar(url) {
+    currentUrl = url;
+    if (hls) hls.destroy();
+    
+    if (Hls.isSupported()) {
+        hls = new Hls({
+            manifestLoadingMaxRetry: 10,
+            levelLoadingMaxRetry: 10
+        });
+        hls.loadSource(url);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => { video.play(); });
+        hls.on(Hls.Events.ERROR, (event, data) => { if(data.fatal) tocar(url); });
+    } else {
+        video.src = url;
+    }
+}
+
+// SUA LISTA M3U INTEGRADA
 const m3u = `
 #EXTM3U
 
@@ -277,39 +263,38 @@ https://video10.logicahost.com.br/tvbrasilangola/tvbrasilangola/playlist.m3u8
 https://stmv7.voxtvhd.com.br/tvimjc/tvimjc/playlist.m3u8
 #EXTINF:-1 tvg-id="TV LIBERDADE BETEL" tvg-name="TV LIBERDADE BETEL" tvg-logo="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgdFU0PJHeowjnRKQ2f6wU5-ziWnTybBFRR1Xky8GXGlARzZWOq8EMwy8cGxDqhVcG3GdeeWNtqxcr2Gy0BPWijAfpQVaPGdUBw1mSCmKPcADBDux-i5xf3JcrAkT1QvIZEMaq3nveXXWDGWFhph-HrwoQjfNJSkVTHr8YL6wK_kRSIjsN2LOo4evHR_5w/s1600/liberdadedebetel.png" group-title="CANAIS | EVANGÉLICOS",TV LIBERDADE BETEL
 https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8`;
-
 function carregarLista() {
-  const linhas = m3u.split("\n");
+    const linhas = m3u.trim().split("\n");
+    for (let i = 0; i < linhas.length; i++) {
+        if (linhas[i].startsWith("#EXTINF")) {
+            const linhaInfo = linhas[i];
+            const url = linhas[i + 1].trim();
+            const nome = linhaInfo.split(",")[1];
+            const logo = linhaInfo.match(/tvg-logo="(.*?)"/)?.[1] || "";
+            const grupo = linhaInfo.match(/group-title="(.*?)"/)?.[1] || "Geral";
 
-  for (let i = 0; i < linhas.length; i++) {
-    if (linhas[i].startsWith("#EXTINF")) {
-
-      const linha = linhas[i];
-
-      const nome = linha.split(",")[1];
-      const url = linhas[i + 1];
-
-      const logoMatch = linha.match(/tvg-logo="(.*?)"/);
-      const logo = logoMatch ? logoMatch[1] : "";
-
-      const div = document.createElement("div");
-      div.className = "canal";
-
-      div.innerHTML = `
-        <img src="${logo}">
-        <span>${nome}</span>
-      `;
-
-      div.onclick = () => tocar(url);
-
-      lista.appendChild(div);
+            const div = document.createElement("div");
+            div.className = "canal";
+            div.innerHTML = `
+                <img src="${logo}" onerror="this.src='https://via.placeholder.com/80'">
+                <div class="canal-info">
+                    <span class="canal-name">${nome}</span>
+                    <span class="canal-group">${grupo}</span>
+                </div>
+            `;
+            div.onclick = () => {
+                document.querySelectorAll('.canal').forEach(c => c.classList.remove('active'));
+                div.classList.add('active');
+                tocar(url);
+            };
+            lista.appendChild(div);
+        }
     }
-  }
 }
 
 carregarLista();
-tocar("http://x1co.com.br:8080/hls/0/stream.m3u8");
+tocar("https://srv3.zcast.com.br/kbstv/kbstv/playlist.m3u8");
+startAntiStall();
 </script>
-
 </body>
 </html>
