@@ -20,10 +20,11 @@
 <div id="main-content">
     <div id="status-overlay">
         <div id="status-dot" class="dot"></div>
-        <span id="status-text">SINAL ESTÁVEL</span>
+        <span id="status-text">AGUARDANDO SELEÇÃO</span>
     </div>
     <div id="player-container">
-        <video id="video" controls autoplay playsinline></video>
+        <!-- Autoplay removido conforme solicitado -->
+        <video id="video" controls playsinline></video>
     </div>
 </div>
 
@@ -38,16 +39,14 @@ let currentUrl = "";
 let lastTime = 0;
 let stallCount = 0;
 
-// Lógica Anti-Trava: Reinicia se o vídeo parar por 5 segundos
 function startAntiStall() {
     setInterval(() => {
-        if (!video.paused) {
+        if (currentUrl && !video.paused) {
             if (video.currentTime === lastTime) {
                 stallCount++;
                 statusText.innerText = `RECUPERANDO SINAL EM ${5 - stallCount}s...`;
                 statusDot.className = "dot loading";
                 if (stallCount >= 5) {
-                    console.log("Anti-Trava: Reiniciando stream...");
                     tocar(currentUrl);
                     stallCount = 0;
                 }
@@ -61,7 +60,11 @@ function startAntiStall() {
     }, 1000);
 }
 
-function tocar(url) {
+function tocar(url, elemento) {
+    // Gerenciar estado visual de "Ativo" na lista
+    document.querySelectorAll('.canal').forEach(el => el.classList.remove('active'));
+    if(elemento) elemento.classList.add('active');
+
     currentUrl = url;
     if (hls) hls.destroy();
     
@@ -72,17 +75,19 @@ function tocar(url) {
         });
         hls.loadSource(url);
         hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => { video.play(); });
-        hls.on(Hls.Events.ERROR, (event, data) => { if(data.fatal) tocar(url); });
-    } else {
+        hls.on(Hls.Events.MANIFEST_PARSED, () => { 
+            video.play(); 
+            statusText.innerText = "SINAL AO VIVO";
+        });
+        hls.on(Hls.Events.ERROR, (event, data) => { if(data.fatal) tocar(url, elemento); });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         video.src = url;
+        video.play();
     }
 }
 
-// SUA LISTA M3U INTEGRADA
 const m3u = `
 #EXTM3U
-
 #EXTINF:-1 tvg-id="kbstv.colombo" tvg-name="KBS TV Colombo" tvg-logo="https://i.imgur.com/naRwiFd.png" group-title="📺 KBS TV",KBS TV COLOMBO
 https://srv3.zcast.com.br/kbstv/kbstv/playlist.m3u8
 #EXTINF:-1 tvg-id="" tvg-name="GLOBO TV BELÉM FHD" tvg-logo="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhq9C3KQg0_ZDXkT-7Git3jJiWmBE5IQrA1tcT_Q2_M2FtztGvbu6NZaEv0_fLfxKA6vkvZQKOCH-Op_RH7fUhM5s55KAlETPj-21UcoOR3QNLTTd7l2jmnpTf2WTwrqq1TRfO9E2pKVXmWle8VBgL7Wdsjdhkos-l-3L8toP-rUQUBtwLtjC8_etvg/s1600/globo200.jpg" group-title="CANAIS | ESTADO DO PARÁ",GLOBO TV BELÉM FHD FONTE 1
@@ -263,37 +268,43 @@ https://video10.logicahost.com.br/tvbrasilangola/tvbrasilangola/playlist.m3u8
 https://stmv7.voxtvhd.com.br/tvimjc/tvimjc/playlist.m3u8
 #EXTINF:-1 tvg-id="TV LIBERDADE BETEL" tvg-name="TV LIBERDADE BETEL" tvg-logo="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgdFU0PJHeowjnRKQ2f6wU5-ziWnTybBFRR1Xky8GXGlARzZWOq8EMwy8cGxDqhVcG3GdeeWNtqxcr2Gy0BPWijAfpQVaPGdUBw1mSCmKPcADBDux-i5xf3JcrAkT1QvIZEMaq3nveXXWDGWFhph-HrwoQjfNJSkVTHr8YL6wK_kRSIjsN2LOo4evHR_5w/s1600/liberdadedebetel.png" group-title="CANAIS | EVANGÉLICOS",TV LIBERDADE BETEL
 https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8`;
-function carregarLista() {
-    const linhas = m3u.trim().split("\n");
-    for (let i = 0; i < linhas.length; i++) {
-        if (linhas[i].startsWith("#EXTINF")) {
-            const linhaInfo = linhas[i];
-            const url = linhas[i + 1].trim();
-            const nome = linhaInfo.split(",")[1];
-            const logo = linhaInfo.match(/tvg-logo="(.*?)"/)?.[1] || "";
-            const grupo = linhaInfo.match(/group-title="(.*?)"/)?.[1] || "Geral";
+function parseM3U(data) {
+    const lines = data.split('\n');
+    const canais = [];
+    let atual = null;
 
-            const div = document.createElement("div");
-            div.className = "canal";
-            div.innerHTML = `
-                <img src="${logo}" onerror="this.src='https://via.placeholder.com/80'">
-                <div class="canal-info">
-                    <span class="canal-name">${nome}</span>
-                    <span class="canal-group">${grupo}</span>
-                </div>
-            `;
-            div.onclick = () => {
-                document.querySelectorAll('.canal').forEach(c => c.classList.remove('active'));
-                div.classList.add('active');
-                tocar(url);
-            };
-            lista.appendChild(div);
+    lines.forEach(line => {
+        if (line.startsWith('#EXTINF:')) {
+            const nome = line.split(',')[1];
+            const logo = line.match(/tvg-logo="([^"]+)"/)?.[1] || "";
+            const grupo = line.match(/group-title="([^"]+)"/)?.[1] || "Geral";
+            atual = { nome, logo, grupo };
+        } else if (line.startsWith('http')) {
+            if (atual) {
+                atual.url = line.trim();
+                canais.push(atual);
+                atual = null;
+            }
         }
-    }
+    });
+    return canais;
 }
 
-carregarLista();
-tocar("https://srv3.zcast.com.br/kbstv/kbstv/playlist.m3u8");
+const canais = parseM3U(m3u);
+canais.forEach(canal => {
+    const item = document.createElement('div');
+    item.className = 'canal';
+    item.innerHTML = `
+        <img src="${canal.logo}" onerror="this.src='https://via.placeholder.com/85'">
+        <div class="canal-info">
+            <span class="canal-name">${canal.nome}</span>
+            <span class="canal-group">${canal.grupo}</span>
+        </div>
+    `;
+    item.onclick = () => tocar(canal.url, item);
+    lista.appendChild(item);
+});
+
 startAntiStall();
 </script>
 </body>
