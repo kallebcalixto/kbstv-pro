@@ -20,11 +20,11 @@
 <div id="main-content">
     <div id="status-overlay">
         <div id="status-dot" class="dot"></div>
-        <span id="status-text">AGUARDANDO SELEÇÃO</span>
+        <span id="status-text">CARREGANDO...</span>
     </div>
     <div id="player-container">
-        <!-- Autoplay removido conforme solicitado -->
-        <video id="video" controls playsinline></video>
+        <!-- 'muted' é necessário para o autoplay funcionar na maioria dos navegadores -->
+        <video id="video" controls autoplay muted playsinline></video>
     </div>
 </div>
 
@@ -39,6 +39,7 @@ let currentUrl = "";
 let lastTime = 0;
 let stallCount = 0;
 
+// Lógica de monitoramento de sinal
 function startAntiStall() {
     setInterval(() => {
         if (currentUrl && !video.paused) {
@@ -61,7 +62,7 @@ function startAntiStall() {
 }
 
 function tocar(url, elemento) {
-    // Gerenciar estado visual de "Ativo" na lista
+    // Atualiza destaque visual na lista
     document.querySelectorAll('.canal').forEach(el => el.classList.remove('active'));
     if(elemento) elemento.classList.add('active');
 
@@ -86,6 +87,7 @@ function tocar(url, elemento) {
     }
 }
 
+// Lista M3U Integrada
 const m3u = `
 #EXTM3U
 #EXTINF:-1 tvg-id="kbstv.colombo" tvg-name="KBS TV Colombo" tvg-logo="https://i.imgur.com/naRwiFd.png" group-title="📺 KBS TV",KBS TV COLOMBO
@@ -291,7 +293,7 @@ function parseM3U(data) {
 }
 
 const canais = parseM3U(m3u);
-canais.forEach(canal => {
+canais.forEach((canal, index) => {
     const item = document.createElement('div');
     item.className = 'canal';
     item.innerHTML = `
@@ -303,6 +305,11 @@ canais.forEach(canal => {
     `;
     item.onclick = () => tocar(canal.url, item);
     lista.appendChild(item);
+
+    // Lógica Autoplayer: Inicia o primeiro canal da lista[cite: 1]
+    if (index === 0) {
+        tocar(canal.url, item);
+    }
 });
 
 startAntiStall();
