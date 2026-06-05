@@ -12,8 +12,8 @@
         #menu { width: 350px; overflow-y: auto; border-right: 1px solid #333; }
         #main-content { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         #player-container { position: relative; width: 90%; max-width: 800px; }
+        /* O navegador usará o estilo nativo para o botão de Cast que aparecerá no player */
         video { width: 100%; border-radius: 8px; background: #000; }
-        .btn-cast { width: 100%; padding: 15px; margin-top: 15px; background: var(--accent-color); border: none; border-radius: 5px; color: #000; font-weight: bold; cursor: pointer; text-transform: uppercase; }
         .canal { display: flex; align-items: center; padding: 10px; cursor: pointer; border-bottom: 1px solid #222; }
         .canal:hover { background: #1e1e1e; }
         .canal.active { border-left: 4px solid var(--accent-color); background: #222; }
@@ -29,8 +29,7 @@
 
 <div id="main-content">
     <div id="player-container">
-        <video id="video" controls autoplay muted playsinline></video>
-        <button class="btn-cast" onclick="abrirNaTv()">📺 TRANSMITIR PARA TV</button>
+        <video id="video" controls autoplay playsinline disableRemotePlayback="false"></video>
     </div>
 </div>
 
@@ -38,10 +37,8 @@
 const video = document.getElementById('video');
 const lista = document.getElementById('lista');
 let hls;
-let currentUrl = "";
 
 function tocar(url, elemento) {
-    currentUrl = url;
     document.querySelectorAll('.canal').forEach(el => el.classList.remove('active'));
     if(elemento) elemento.classList.add('active');
     
@@ -50,12 +47,6 @@ function tocar(url, elemento) {
     hls.loadSource(url);
     hls.attachMedia(video);
     video.play();
-}
-
-function abrirNaTv() {
-    if(!currentUrl) { alert("Selecione um canal primeiro!"); return; }
-    // Este código envia o link do vídeo para o aplicativo Web Video Caster instalado no celular
-    window.location.href = "intent:" + currentUrl + "#Intent;scheme=http;package=com.instantbits.cast.webvideo;end";
 }
 
 const m3u = `
