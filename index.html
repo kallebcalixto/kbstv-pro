@@ -2,56 +2,32 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KBS TV PRO - Elite Player</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KBS TV PRO - Mobile Optimized</title>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-    <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root { --accent-color: #00e676; }
-        body { font-family: 'Inter', sans-serif; background: #121212; color: white; margin: 0; display: flex; height: 100vh; }
-        #menu { width: 350px; overflow-y: auto; border-right: 1px solid #333; }
-        #main-content { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
-        #player-container { position: relative; width: 90%; max-width: 800px; }
-        video { width: 100%; border-radius: 8px; }
-        /* Estilo do Botão Cast */
-        #cast-button { position: absolute; top: 15px; right: 15px; width: 45px; height: 45px; z-index: 999; cursor: pointer; }
-        .canal { display: flex; align-items: center; padding: 10px; cursor: pointer; border-bottom: 1px solid #222; }
-        .canal:hover { background: #1e1e1e; }
-        .canal.active { border-left: 4px solid var(--accent-color); background: #222; }
-        .canal img { width: 50px; height: 50px; border-radius: 4px; margin-right: 10px; object-fit: cover; }
-        #status-overlay { margin-bottom: 10px; color: var(--accent-color); font-weight: bold; }
+        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; }
+        /* Player ocupa o topo de forma limpa */
+        #player-container { width: 100%; height: 30vh; background: #111; display: flex; align-items: center; justify-content: center; }
+        video { width: 100%; height: 100%; object-fit: contain; }
+        /* Lista abaixo do player para ser fácil de usar com o dedo */
+        #lista { flex: 1; overflow-y: auto; padding: 10px; }
+        .canal { display: flex; align-items: center; padding: 15px; border-bottom: 1px solid #333; background: #111; margin-bottom: 5px; border-radius: 10px; }
+        .canal img { width: 50px; height: 50px; border-radius: 8px; margin-right: 15px; }
+        .canal.active { border: 2px solid #00e676; }
     </style>
 </head>
 <body>
 
-<div id="menu">
-    <div style="padding: 20px;"><h2>📺 KBS TV <span style="color:var(--accent-color)">PRO</span></h2></div>
-    <div id="lista"></div>
+<div id="player-container">
+    <video id="video" controls autoplay playsinline></video>
 </div>
 
-<div id="main-content">
-    <div id="status-overlay"><span id="status-text">CARREGANDO...</span></div>
-    <div id="player-container">
-        <google-cast-launcher id="cast-button"></google-cast-launcher>
-        <video id="video" controls autoplay muted playsinline></video>
-    </div>
-</div>
+<div id="lista"></div>
 
 <script>
-    // Inicialização do Google Cast
-    window['__onGCastApiAvailable'] = function(isAvailable) {
-        if (isAvailable) {
-            cast.framework.CastContext.getInstance().setOptions({
-                receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
-                autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
-            });
-        }
-    };
-
     const video = document.getElementById('video');
     const lista = document.getElementById('lista');
-    const statusText = document.getElementById('status-text');
     let hls;
 
     function tocar(url, elemento) {
@@ -59,20 +35,14 @@
         if(elemento) elemento.classList.add('active');
         
         if (hls) hls.destroy();
-        if (Hls.isSupported()) {
-            hls = new Hls();
-            hls.loadSource(url);
-            hls.attachMedia(video);
-            hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
-        } else {
-            video.src = url;
-            video.play();
-        }
-        statusText.innerText = "SINAL AO VIVO";
+        hls = new Hls();
+        hls.loadSource(url);
+        hls.attachMedia(video);
+        video.play();
     }
 
-    // Lista de canais que você enviou
-    const m3u =`
+    // Aqui entra a sua lista (simplificada para o exemplo)
+    const canais =`
 #EXTM3U
 #EXTINF:-1 tvg-id="kbstv.colombo" tvg-name="KBS TV Colombo" tvg-logo="https://i.imgur.com/Gachxib.png" group-title="📺 KBS TV",KBS TV COLOMBO
 https://srv3.zcast.com.br/kbstv/kbstv/playlist.m3u8
