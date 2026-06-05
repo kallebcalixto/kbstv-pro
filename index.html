@@ -4,91 +4,75 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KBS TV PRO - Elite Player</title>
-    <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --accent-color: #00e676; }
+        body { font-family: 'Inter', sans-serif; background: #121212; color: white; margin: 0; display: flex; height: 100vh; }
+        #menu { width: 350px; overflow-y: auto; border-right: 1px solid #333; }
+        #main-content { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+        #player-container { position: relative; width: 90%; max-width: 800px; }
+        video { width: 100%; border-radius: 8px; }
+        /* Estilo do Botão Cast */
+        #cast-button { position: absolute; top: 15px; right: 15px; width: 45px; height: 45px; z-index: 999; cursor: pointer; }
+        .canal { display: flex; align-items: center; padding: 10px; cursor: pointer; border-bottom: 1px solid #222; }
+        .canal:hover { background: #1e1e1e; }
+        .canal.active { border-left: 4px solid var(--accent-color); background: #222; }
+        .canal img { width: 50px; height: 50px; border-radius: 4px; margin-right: 10px; object-fit: cover; }
+        #status-overlay { margin-bottom: 10px; color: var(--accent-color); font-weight: bold; }
+    </style>
 </head>
 <body>
 
 <div id="menu">
-    <div class="header-logo">
-        <h2>📺 KBS TV <span style="color:var(--accent-color)">PRO</span></h2>
-    </div>
+    <div style="padding: 20px;"><h2>📺 KBS TV <span style="color:var(--accent-color)">PRO</span></h2></div>
     <div id="lista"></div>
 </div>
 
 <div id="main-content">
-    <div id="status-overlay">
-        <div id="status-dot" class="dot"></div>
-        <span id="status-text">CARREGANDO...</span>
-    </div>
+    <div id="status-overlay"><span id="status-text">CARREGANDO...</span></div>
     <div id="player-container">
-        <!-- 'muted' é necessário para o autoplay funcionar na maioria dos navegadores -->
+        <google-cast-launcher id="cast-button"></google-cast-launcher>
         <video id="video" controls autoplay muted playsinline></video>
     </div>
 </div>
 
 <script>
-const video = document.getElementById('video');
-const lista = document.getElementById('lista');
-const statusText = document.getElementById('status-text');
-const statusDot = document.getElementById('status-dot');
-
-let hls;
-let currentUrl = "";
-let lastTime = 0;
-let stallCount = 0;
-
-// Lógica de monitoramento de sinal
-function startAntiStall() {
-    setInterval(() => {
-        if (currentUrl && !video.paused) {
-            if (video.currentTime === lastTime) {
-                stallCount++;
-                statusText.innerText = `RECUPERANDO SINAL EM ${5 - stallCount}s...`;
-                statusDot.className = "dot loading";
-                if (stallCount >= 5) {
-                    tocar(currentUrl);
-                    stallCount = 0;
-                }
-            } else {
-                stallCount = 0;
-                statusText.innerText = "SINAL AO VIVO";
-                statusDot.className = "dot";
-                lastTime = video.currentTime;
-            }
+    // Inicialização do Google Cast
+    window['__onGCastApiAvailable'] = function(isAvailable) {
+        if (isAvailable) {
+            cast.framework.CastContext.getInstance().setOptions({
+                receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
+                autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
+            });
         }
-    }, 1000);
-}
+    };
 
-function tocar(url, elemento) {
-    // Atualiza destaque visual na lista
-    document.querySelectorAll('.canal').forEach(el => el.classList.remove('active'));
-    if(elemento) elemento.classList.add('active');
+    const video = document.getElementById('video');
+    const lista = document.getElementById('lista');
+    const statusText = document.getElementById('status-text');
+    let hls;
 
-    currentUrl = url;
-    if (hls) hls.destroy();
-    
-    if (Hls.isSupported()) {
-        hls = new Hls({
-            manifestLoadingMaxRetry: 10,
-            levelLoadingMaxRetry: 10
-        });
-        hls.loadSource(url);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => { 
-            video.play(); 
-            statusText.innerText = "SINAL AO VIVO";
-        });
-        hls.on(Hls.Events.ERROR, (event, data) => { if(data.fatal) tocar(url, elemento); });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = url;
-        video.play();
+    function tocar(url, elemento) {
+        document.querySelectorAll('.canal').forEach(el => el.classList.remove('active'));
+        if(elemento) elemento.classList.add('active');
+        
+        if (hls) hls.destroy();
+        if (Hls.isSupported()) {
+            hls = new Hls();
+            hls.loadSource(url);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+        } else {
+            video.src = url;
+            video.play();
+        }
+        statusText.innerText = "SINAL AO VIVO";
     }
-}
 
-// Lista M3U Integrada
-const m3u = `
+    // Lista de canais que você enviou
+    const m3u =`
 #EXTM3U
 #EXTINF:-1 tvg-id="kbstv.colombo" tvg-name="KBS TV Colombo" tvg-logo="https://i.imgur.com/Gachxib.png" group-title="📺 KBS TV",KBS TV COLOMBO
 https://srv3.zcast.com.br/kbstv/kbstv/playlist.m3u8
@@ -230,48 +214,31 @@ https://stmv7.voxtvhd.com.br/tvimjc/tvimjc/playlist.m3u8
 #EXTINF:-1 tvg-id="TV LIBERDADE BETEL" tvg-name="TV LIBERDADE BETEL" tvg-logo="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgdFU0PJHeowjnRKQ2f6wU5-ziWnTybBFRR1Xky8GXGlARzZWOq8EMwy8cGxDqhVcG3GdeeWNtqxcr2Gy0BPWijAfpQVaPGdUBw1mSCmKPcADBDux-i5xf3JcrAkT1QvIZEMaq3nveXXWDGWFhph-HrwoQjfNJSkVTHr8YL6wK_kRSIjsN2LOo4evHR_5w/s1600/liberdadedebetel.png" group-title="CANAIS | EVANGÉLICOS",TV LIBERDADE BETEL
 https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8`;
 function parseM3U(data) {
-    const lines = data.split('\n');
-    const canais = [];
-    let atual = null;
-
-    lines.forEach(line => {
-        if (line.startsWith('#EXTINF:')) {
-            const nome = line.split(',')[1];
-            const logo = line.match(/tvg-logo="([^"]+)"/)?.[1] || "";
-            const grupo = line.match(/group-title="([^"]+)"/)?.[1] || "Geral";
-            atual = { nome, logo, grupo };
-        } else if (line.startsWith('http')) {
-            if (atual) {
-                atual.url = line.trim();
-                canais.push(atual);
-                atual = null;
+        const lines = data.split('\n');
+        const canais = [];
+        let atual = null;
+        lines.forEach(line => {
+            if (line.startsWith('#EXTINF:')) {
+                const nome = line.split(',')[1];
+                const logo = line.match(/tvg-logo="([^"]+)"/)?.[1] || "";
+                const grupo = line.match(/group-title="([^"]+)"/)?.[1] || "Geral";
+                atual = { nome, logo, grupo };
+            } else if (line.startsWith('http')) {
+                if (atual) { atual.url = line.trim(); canais.push(atual); atual = null; }
             }
-        }
-    });
-    return canais;
-}
-
-const canais = parseM3U(m3u);
-canais.forEach((canal, index) => {
-    const item = document.createElement('div');
-    item.className = 'canal';
-    item.innerHTML = `
-        <img src="${canal.logo}" onerror="this.src='https://via.placeholder.com/85'">
-        <div class="canal-info">
-            <span class="canal-name">${canal.nome}</span>
-            <span class="canal-group">${canal.grupo}</span>
-        </div>
-    `;
-    item.onclick = () => tocar(canal.url, item);
-    lista.appendChild(item);
-
-    // Lógica Autoplayer: Inicia o primeiro canal da lista[cite: 1]
-    if (index === 0) {
-        tocar(canal.url, item);
+        });
+        return canais;
     }
-});
 
-startAntiStall();
+    const canais = parseM3U(m3u);
+    canais.forEach((canal, index) => {
+        const item = document.createElement('div');
+        item.className = 'canal';
+        item.innerHTML = `<img src="${canal.logo}" onerror="this.src='https://via.placeholder.com/50'"><div class="canal-info"><b>${canal.nome}</b><br><small>${canal.grupo}</small></div>`;
+        item.onclick = () => tocar(canal.url, item);
+        lista.appendChild(item);
+        if (index === 0) tocar(canal.url, item);
+    });
 </script>
 </body>
 </html>
