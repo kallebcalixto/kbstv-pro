@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KBS TV PRO - Smart TV Edition</title>
+    <title>KBS TV PRO - LG Smart TV Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     
@@ -21,6 +21,9 @@
             margin: 0;
             padding: 0;
             -webkit-tap-highlight-color: transparent;
+            /* Desativa o cursor do mouse/dedinho indesejado na TV */
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         body {
@@ -31,15 +34,15 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            /* Impede interações por toque de arrastar indesejadas */
+            touch-action: none; 
         }
 
-        ::-webkit-scrollbar { height: 6px; }
-        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+        ::-webkit-scrollbar { display: none; } /* Esconde barras de rolagem feias na TV */
 
         /* ================= HEADER ================= */
         header {
-            height: 60px;
+            height: 55px;
             background: rgba(16, 16, 20, 0.95);
             display: flex;
             align-items: center;
@@ -50,7 +53,7 @@
         }
 
         .brand-logo {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: 900;
             letter-spacing: -0.5px;
             color: #fff;
@@ -66,15 +69,15 @@
             gap: 6px;
             background: rgba(0, 0, 0, 0.5);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            padding: 4px 12px;
+            padding: 4px 10px;
             border-radius: 20px;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             font-weight: 700;
         }
 
         .dot {
-            width: 7px;
-            height: 7px;
+            width: 6px;
+            height: 6px;
             background: var(--netflix-red);
             border-radius: 50%;
             box-shadow: 0 0 8px var(--netflix-red);
@@ -113,13 +116,14 @@
             object-fit: contain;
             background: #000;
             outline: none;
+            pointer-events: none; /* Evita que cliques da TV pausem o vídeo sem querer */
         }
 
         .player-info-overlay {
             position: absolute;
             bottom: 15px;
             left: 20px;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.75);
             backdrop-filter: blur(8px);
             padding: 8px 16px;
             border-radius: 8px;
@@ -129,21 +133,21 @@
         }
 
         .player-channel-name {
-            font-size: 1rem;
+            font-size: 0.95rem;
             font-weight: 800;
             color: #fff;
         }
 
         .player-channel-group {
-            font-size: 0.65rem;
+            font-size: 0.6rem;
             color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
-        /* ================= ROLETA HORIZONTAL ================= */
+        /* ================= ROLETA HORIZONTAL PULA-PULA ================= */
         #roleta-section {
-            height: 160px;
+            height: 155px;
             background: #141418;
             border-top: 1px solid rgba(255, 255, 255, 0.06);
             display: flex;
@@ -155,7 +159,7 @@
         }
 
         .roleta-titulo {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             font-weight: 800;
             color: var(--text-muted);
             text-transform: uppercase;
@@ -165,56 +169,48 @@
 
         .roleta-container {
             display: flex;
-            gap: 14px;
-            overflow-x: auto;
-            scroll-snap-type: x mandatory;
-            padding-bottom: 8px;
+            gap: 12px;
+            overflow-x: hidden; /* Corta a rolagem por mouse/dedinho, forçando o controle remoto */
             scroll-behavior: smooth;
-            outline: none; /* Remove borda feia de foco padrão da TV */
+            outline: none;
+            width: 100%;
         }
 
         .roleta-card {
-            flex: 0 0 140px;
-            height: 85px;
+            flex: 0 0 135px;
+            height: 80px;
             background: var(--card-bg);
-            border-radius: 10px;
-            cursor: pointer;
-            scroll-snap-align: center;
+            border-radius: 8px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 8px;
+            padding: 6px;
             border: 2px solid transparent;
-            transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+            transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease;
             position: relative;
             overflow: hidden;
+            pointer-events: none; /* Desativa cliques do mouse/dedinho mágico da LG */
         }
 
         .roleta-card img {
-            max-width: 70%;
-            max-height: 55px;
+            max-width: 65%;
+            max-height: 48px;
             object-fit: contain;
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
-            transition: transform 0.25s;
         }
 
-        .roleta-card:hover {
-            transform: scale(1.05);
-            background: #2a2a30;
-        }
-
-        /* Card Ativo na Smart TV (Foco ou Selecionado) */
-        .roleta-card.active, .roleta-card:focus {
+        /* Card Ativo (Selecionado instantaneamente pelo controle) */
+        .roleta-card.active {
             border-color: var(--netflix-red);
-            background: #222228;
-            box-shadow: 0 6px 20px rgba(229, 9, 20, 0.4);
-            transform: scale(1.08);
-            outline: none;
+            background: #25252d;
+            box-shadow: 0 0 20px rgba(229, 9, 20, 0.5);
+            transform: scale(1.12); /* Aumenta bem o canal do meio para destacar */
+            z-index: 5;
         }
 
         .roleta-card-name {
-            font-size: 0.6rem;
+            font-size: 0.55rem;
             font-weight: 700;
             color: #ccc;
             margin-top: 4px;
@@ -226,17 +222,9 @@
         }
 
         @media (max-width: 768px) {
-            #main-content {
-                max-height: 45vh;
-            }
-            #roleta-section {
-                height: 145px;
-                padding: 0 10px;
-            }
-            .roleta-card {
-                flex: 0 0 115px;
-                height: 75px;
-            }
+            #main-content { max-height: 45vh; }
+            #roleta-section { height: 135px; padding: 0 10px; }
+            .roleta-card { flex: 0 0 110px; height: 70px; }
         }
     </style>
 </head>
@@ -261,7 +249,7 @@
     </div>
 
     <div id="roleta-section">
-        <div class="roleta-titulo">Canais Disponíveis (Use as setas do controle)</div>
+        <div class="roleta-titulo">Use as Setas Esquerda / Direita do Controle</div>
         <div id="roleta-container" class="roleta-container" tabindex="0"></div>
     </div>
 
@@ -279,6 +267,7 @@
         let stallCount = 0;
         let canaisArray = [];
         let currentIndex = 0;
+        let cardsElements = [];
 
         function startAntiStall() {
             setInterval(() => {
@@ -301,12 +290,12 @@
             }, 1000);
         }
 
-        function tocar(canalObj, elemento, index) {
-            document.querySelectorAll('.roleta-card').forEach(el => el.classList.remove('active'));
-            if(elemento) {
-                elemento.classList.add('active');
-                elemento.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-                if (index !== undefined) currentIndex = index;
+        function tocar(canalObj, index) {
+            cardsElements.forEach(el => el.classList.remove('active'));
+            if(cardsElements[index]) {
+                cardsElements[index].classList.add('active');
+                cardsElements[index].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                currentIndex = index;
             }
 
             currentUrl = canalObj.url;
@@ -326,7 +315,7 @@
                     video.play(); 
                     statusText.innerText = "AO VIVO";
                 });
-                hls.on(Hls.Events.ERROR, (event, data) => { if(data.fatal) tocar(canalObj, elemento, index); });
+                hls.on(Hls.Events.ERROR, (event, data) => { if(data.fatal) tocar(canalObj, index); });
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 video.src = canalObj.url;
                 video.play();
@@ -525,11 +514,9 @@ https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8
         }
 
         const canais = parseM3U(m3u);
-        const cardsElements = [];
         const fragment = document.createDocumentFragment();
 
         let primeiroCanal = null;
-        let primeiroElemento = null;
 
         canais.forEach((canal, index) => {
             const card = document.createElement('div');
@@ -538,14 +525,11 @@ https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8
                 <img src="${canal.logo}" loading="lazy" onerror="this.src='https://via.placeholder.com/80?text=TV'">
                 <div class="roleta-card-name">${canal.nome}</div>
             `;
-
-            card.onclick = () => tocar(canal, card, index);
             fragment.appendChild(card);
             cardsElements.push(card);
 
             if (!primeiroCanal) {
                 primeiroCanal = canal;
-                primeiroElemento = card;
                 currentIndex = index;
             }
         });
@@ -553,34 +537,31 @@ https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8
         roletaContainer.appendChild(fragment);
 
         if (primeiroCanal) {
-            tocar(primeiroCanal, primeiroElemento, 0);
+            tocar(primeiroCanal, 0);
         }
 
-        // ================= SUPORTE A CONTROLE REMOTO DE SMART TV =================
-        // Mantém a roleta focada na página para capturar as setas do controle
+        // Mantém o foco travado na página para a TV entender direto o controle
         window.addEventListener('load', () => {
             roletaContainer.focus();
         });
 
+        // Controles otimizados para Smart TV LG (Pula instantaneamente por clique nas setas)
         window.addEventListener('keydown', (e) => {
             if (canais.length === 0) return;
 
-            // Seta para a Direita ou Seta para Baixo no controle remoto
-            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+            if (e.key === 'ArrowRight' || e.key === 'ChannelDown') {
                 e.preventDefault();
                 currentIndex = (currentIndex + 1) % canais.length;
-                tocar(canais[currentIndex], cardsElements[currentIndex], currentIndex);
+                tocar(canais[currentIndex], currentIndex);
             } 
-            // Seta para a Esquerda ou Seta para Cima no controle remoto
-            else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+            else if (e.key === 'ArrowLeft' || e.key === 'ChannelUp') {
                 e.preventDefault();
                 currentIndex = (currentIndex - 1 + canais.length) % canais.length;
-                tocar(canais[currentIndex], cardsElements[currentIndex], currentIndex);
+                tocar(canais[currentIndex], currentIndex);
             }
-            // Tecla Enter ou OK do controle remoto para garantir foco/play
             else if (e.key === 'Enter') {
                 e.preventDefault();
-                tocar(canais[currentIndex], cardsElements[currentIndex], currentIndex);
+                tocar(canais[currentIndex], currentIndex);
             }
         });
 
