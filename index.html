@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KBS TV PRO - Stream Platform</title>
+    <title>KBS TV PRO - Smart TV Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     
@@ -170,6 +170,7 @@
             scroll-snap-type: x mandatory;
             padding-bottom: 8px;
             scroll-behavior: smooth;
+            outline: none; /* Remove borda feia de foco padrão da TV */
         }
 
         .roleta-card {
@@ -203,11 +204,13 @@
             background: #2a2a30;
         }
 
-        .roleta-card.active {
+        /* Card Ativo na Smart TV (Foco ou Selecionado) */
+        .roleta-card.active, .roleta-card:focus {
             border-color: var(--netflix-red);
             background: #222228;
-            box-shadow: 0 6px 20px rgba(229, 9, 20, 0.3);
+            box-shadow: 0 6px 20px rgba(229, 9, 20, 0.4);
             transform: scale(1.08);
+            outline: none;
         }
 
         .roleta-card-name {
@@ -258,8 +261,8 @@
     </div>
 
     <div id="roleta-section">
-        <div class="roleta-titulo">Canais Disponíveis (Arraste para o lado)</div>
-        <div id="roleta-container" class="roleta-container"></div>
+        <div class="roleta-titulo">Canais Disponíveis (Use as setas do controle)</div>
+        <div id="roleta-container" class="roleta-container" tabindex="0"></div>
     </div>
 
     <script>
@@ -274,6 +277,8 @@
         let currentUrl = "";
         let lastTime = 0;
         let stallCount = 0;
+        let canaisArray = [];
+        let currentIndex = 0;
 
         function startAntiStall() {
             setInterval(() => {
@@ -296,11 +301,12 @@
             }, 1000);
         }
 
-        function tocar(canalObj, elemento) {
+        function tocar(canalObj, elemento, index) {
             document.querySelectorAll('.roleta-card').forEach(el => el.classList.remove('active'));
             if(elemento) {
                 elemento.classList.add('active');
                 elemento.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                if (index !== undefined) currentIndex = index;
             }
 
             currentUrl = canalObj.url;
@@ -320,7 +326,7 @@
                     video.play(); 
                     statusText.innerText = "AO VIVO";
                 });
-                hls.on(Hls.Events.ERROR, (event, data) => { if(data.fatal) tocar(canalObj, elemento); });
+                hls.on(Hls.Events.ERROR, (event, data) => { if(data.fatal) tocar(canalObj, elemento, index); });
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 video.src = canalObj.url;
                 video.play();
@@ -519,12 +525,13 @@ https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8
         }
 
         const canais = parseM3U(m3u);
+        const cardsElements = [];
         const fragment = document.createDocumentFragment();
 
         let primeiroCanal = null;
         let primeiroElemento = null;
 
-        canais.forEach((canal) => {
+        canais.forEach((canal, index) => {
             const card = document.createElement('div');
             card.className = 'roleta-card';
             card.innerHTML = `
@@ -532,20 +539,50 @@ https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8
                 <div class="roleta-card-name">${canal.nome}</div>
             `;
 
-            card.onclick = () => tocar(canal, card);
+            card.onclick = () => tocar(canal, card, index);
             fragment.appendChild(card);
+            cardsElements.push(card);
 
             if (!primeiroCanal) {
                 primeiroCanal = canal;
                 primeiroElemento = card;
+                currentIndex = index;
             }
         });
 
         roletaContainer.appendChild(fragment);
 
         if (primeiroCanal) {
-            tocar(primeiroCanal, primeiroElemento);
+            tocar(primeiroCanal, primeiroElemento, 0);
         }
+
+        // ================= SUPORTE A CONTROLE REMOTO DE SMART TV =================
+        // Mantém a roleta focada na página para capturar as setas do controle
+        window.addEventListener('load', () => {
+            roletaContainer.focus();
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (canais.length === 0) return;
+
+            // Seta para a Direita ou Seta para Baixo no controle remoto
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                currentIndex = (currentIndex + 1) % canais.length;
+                tocar(canais[currentIndex], cardsElements[currentIndex], currentIndex);
+            } 
+            // Seta para a Esquerda ou Seta para Cima no controle remoto
+            else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                currentIndex = (currentIndex - 1 + canais.length) % canais.length;
+                tocar(canais[currentIndex], cardsElements[currentIndex], currentIndex);
+            }
+            // Tecla Enter ou OK do controle remoto para garantir foco/play
+            else if (e.key === 'Enter') {
+                e.preventDefault();
+                tocar(canais[currentIndex], cardsElements[currentIndex], currentIndex);
+            }
+        });
 
         startAntiStall();
     </script>
