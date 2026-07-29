@@ -170,7 +170,7 @@
             scroll-snap-type: x mandatory;
             padding-bottom: 8px;
             scroll-behavior: smooth;
-            outline: none; /* Remove borda feia de foco padrão da TV */
+            outline: none;
         }
 
         .roleta-card {
@@ -204,7 +204,6 @@
             background: #2a2a30;
         }
 
-        /* Card Ativo na Smart TV (Foco ou Selecionado) */
         .roleta-card.active, .roleta-card:focus {
             border-color: var(--netflix-red);
             background: #222228;
@@ -277,7 +276,6 @@
         let currentUrl = "";
         let lastTime = 0;
         let stallCount = 0;
-        let canaisArray = [];
         let currentIndex = 0;
 
         function startAntiStall() {
@@ -288,7 +286,7 @@
                         statusText.innerText = `RECONECTANDO (${5 - stallCount}s)`;
                         statusDot.className = "dot loading";
                         if (stallCount >= 5) {
-                            tocar(currentUrl);
+                            tocar(canaisArray[currentIndex]);
                             stallCount = 0;
                         }
                     } else {
@@ -323,13 +321,27 @@
                 hls.loadSource(canalObj.url);
                 hls.attachMedia(video);
                 hls.on(Hls.Events.MANIFEST_PARSED, () => { 
-                    video.play(); 
+                    video.play().catch(() => {}); 
                     statusText.innerText = "AO VIVO";
                 });
-                hls.on(Hls.Events.ERROR, (event, data) => { if(data.fatal) tocar(canalObj, elemento, index); });
+                hls.on(Hls.Events.ERROR, (event, data) => { 
+                    if(data.fatal) {
+                        switch(data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                hls.startLoad();
+                                break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                hls.recoverMediaError();
+                                break;
+                            default:
+                                hls.destroy();
+                                break;
+                        }
+                    }
+                });
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                 video.src = canalObj.url;
-                video.play();
+                video.play().catch(() => {});
             }
         }
 
@@ -337,30 +349,23 @@
 #EXTM3U
 #EXTINF:-1 tvg-id="kbstv.colombo" tvg-name="KBS TV Colombo" tvg-logo="https://yt3.googleusercontent.com/2IVQ9GRPg3OFWtm9qEC4DiHyiKHc-wmUCtR3pPEVhNT0o4gO-HlzWYUxYOS4EKaJ3kys40Gt-Pc=s900-c-k-c0x00ffffff-no-rj" group-title="📺 KBS TV",KBS TV COLOMBO
 https://srv3.zcast.com.br/kbstv/kbstv/playlist.m3u8
-#EXTM3U
 #EXTINF:-1 tvg-id="Canal_3" tvg-name="Canal 3" tvg-logo="https://i.imgur.com/QbYQmYX.png" group-title="Canais",Canal 3
 https://stmv.webtvninjas.com.br/tv3/tv3/playlist.m3u8
-#EXTM3U
-#EXTINF:-1 tvg-"Canal_SBT" tvg-name="Canal_SBT" tvg-logo="https://upload.wikimedia.org/wikipedia/pt/thumb/4/41/Logotipo_do_SBT.svg/500px-Logotipo_do_SBT.svg.png"
+#EXTINF:-1 tvg-id="Canal_SBT" tvg-name="Canal_SBT" tvg-logo="https://upload.wikimedia.org/wikipedia/pt/thumb/4/41/Logotipo_do_SBT.svg/500px-Logotipo_do_SBT.svg.png" group-title="Canais",SBT
 https://s1.micineovs.com/SBT/tracks-v1a1/mono.m3u8?token=16FOTt9Ae2m8
-#EXTINF:-1 tvg-logo="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTtPPgpTFgjtx9a7t6daFf9-IGBi5aJvZnG-nx_nvf6vg&s=10", GLOBO
+#EXTINF:-1 tvg-id="GLOBO" tvg-name="GLOBO" tvg-logo="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTtPPgpTFgjtx9a7t6daFf9-IGBi5aJvZnG-nx_nvf6vg&s=10" group-title="Canais",GLOBO
 https://s2.micineovs.com/GLOBO/tracks-v1a1/mono.m3u8?token=16FOTt9Ae2m8
-#EXTM3U
-#EXTINF:-1 tvg-logo="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSE5Y4KKG-T5hK6lYOzS0AtcKeDNcua6W83d22c8Z6r2w&s", NSPRIT TCL Roku
+#EXTINF:-1 tvg-id="NSPRIT" tvg-name="NSPRIT TCL Roku" tvg-logo="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSE5Y4KKG-T5hK6lYOzS0AtcKeDNcua6W83d22c8Z6r2w&s" group-title="Canais",NSPRIT TCL Roku
 https://ogc-nsprt-tcl-roku-syndication.otteravision.com/ogc/nsprt/nsprt_720p.m3u8
-#EXTINF:-1 tvg-logo="https://upload.wikimedia.org/wikipedia/pt/2/22/Logotipo_da_Caz%C3%A9TV.png" group-title="Esportes", Cazé TV
+#EXTINF:-1 tvg-id="CazeTV" tvg-logo="https://upload.wikimedia.org/wikipedia/pt/2/22/Logotipo_da_Caz%C3%A9TV.png" group-title="Esportes",Cazé TV
 https://amg01391-amg01391c10-tcl-br-9630.playouts.now.amagi.tv/1080p-cc/index.m3u8
-#EXTM3U
-#EXTINF:-1 tvg-logo="https://jovempan.com.br/wp-content/uploads/sites/2/2026/06/ASSINA_JP.png",Jovem Pan
+#EXTINF:-1 tvg-id="JovemPan" tvg-logo="https://jovempan.com.br/wp-content/uploads/sites/2/2026/06/ASSINA_JP.png" group-title="Canais",Jovem Pan
 https://amg01391-amg01391c3-tcl-spain-5038.playouts.now.amagi.tv/playlist1080-p.m3u8
-#EXTM3U
-#EXTINF:-1 tvg-logo="https://grandesnomesdapropaganda.com.br/wp-content/uploads/2022/09/record-news.png",Record News
+#EXTINF:-1 tvg-id="RecordNews" tvg-logo="https://grandesnomesdapropaganda.com.br/wp-content/uploads/2022/09/record-news.png" group-title="Canais",Record News
 https://run-rnw-rn.otteravision.com/rnw/rn/rnw_rn_720p_high.m3u8
-#EXTM3U
-#EXTINF:-1 tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/FOX_Kids_logo.svg/250px-FOX_Kids_logo.svg.png",Fox Kids
+#EXTINF:-1 tvg-id="FoxKids" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/FOX_Kids_logo.svg/250px-FOX_Kids_logo.svg.png" group-title="Canais",Fox Kids
 https://stmv2.srvif.com/emlsilva/emlsilva/playlist.m3u8?hls_ctx=h517o66o
-#EXTM3U
-#EXTINF:-1 tvg-logo="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTN-B_v_Kn5IVffJA2tBe5GZPEyvu8U7cvfYQ&s",MTV
+#EXTINF:-1 tvg-id="MTV" tvg-logo="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTN-B_v_Kn5IVffJA2tBe5GZPEyvu8U7cvfYQ&s" group-title="Canais",MTV
 https://s1.tvr.ovh/acessomusic/acessomusic/chunklist_w1066492949.m3u8
 #EXTINF:-1 tvg-id="Runtime" tvg-name="Runtime" tvg-logo="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjOaWl3zNJjzy9frEgev6nzBshvK4simQhlYQL7qMiKJ58v3l7goA4HeWR6Za0RpzATFf8W6nDncHYXsVgVdqsSUmCKaH5Oak8uj71sKEw9YKBJ0B__px0EnnZJiiCn0lvo1Y1w4dQ8GmKMLc9s-of6vqcUdIsLcB830KuT3Gu21nTSiXxRgX_smDS6Wk4/s1600/runt.webp" group-title="CANAIS | FILMES E SERIES",Runtime
 https://stream.ads.ottera.tv/playlist.m3u8?network_id=2153
@@ -494,7 +499,7 @@ https://5a57bda70564a.streamlock.net/tvsepiol/tvsepiol.sdp/playlist.m3u8
 https://video10.logicahost.com.br/tvbrasilangola/tvbrasilangola/playlist.m3u8
 #EXTINF:-1 tvg-id="TV IMJC" tvg-name="TV IMJC" tvg-logo="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjUnHcgNFulfRpAN9gV3SZxvTy2Uspha8chchvapnE69_5Y1UPV0uroo5NJyk-eUIU9A0MixSXdFojBNAmkkaYAufYwk3dl5pGM_p88TWPqSz1r_zFHn0WGqpsHmTCbPRo7Mz1Hb94w7G_uWyIoQDtYqMpckkTeGI6QTpjrAl0nP3PVFRCbB9WFLvP0CHs/s1600/tvimjc.png" group-title="CANAIS | EVANGÉLICOS",TV IMJC
 https://stmv7.voxtvhd.com.br/tvimjc/tvimjc/playlist.m3u8
-#EXTINF:-1 tvg-logo="https://www.xtremetv.com.br/public/slider/50156-2026-01-22.jpg", Xtreme TV 54
+#EXTINF:-1 tvg-logo="https://www.xtremetv.com.br/public/slider/50156-2026-01-22.jpg" group-title="CANAIS",Xtreme TV 54
 https://stmv.webtvninjas.com.br/xtremetv54/xtremetv54/playlist.m3u8
 #EXTINF:-1 tvg-id="TV LIBERDADE BETEL" tvg-name="TV LIBERDADE BETEL" tvg-logo="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgdFU0PJHeowjnRKQ2f6wU5-ziWnTybBFRR1Xky8GXGlARzZWOq8EMwy8cGxDqhVcG3GdeeWNtqxcr2Gy0BPWijAfpQVaPGdUBw1mSCmKPcADBDux-i5xf3JcrAkT1QvIZEMaq3nveXXWDGWFhph-HrwoQjfNJSkVTHr8YL6wK_kRSIjsN2LOo4evHR_5w/s1600/liberdadedebetel.png" group-title="CANAIS | EVANGÉLICOS",TV LIBERDADE BETEL
 https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8
@@ -506,6 +511,7 @@ https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8
             let atual = null;
 
             lines.forEach(line => {
+                line = line.trim();
                 if (line.startsWith('#EXTINF:')) {
                     const nome = line.split(',')[1] || "Canal Desconhecido";
                     const logo = line.match(/tvg-logo="([^"]+)"/)?.[1] || "";
@@ -515,7 +521,7 @@ https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8
                     atual = { nome, logo, grupo };
                 } else if (line.startsWith('http')) {
                     if (atual) {
-                        atual.url = line.trim();
+                        atual.url = line;
                         canais.push(atual);
                         atual = null;
                     }
@@ -525,6 +531,7 @@ https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8
         }
 
         const canais = parseM3U(m3u);
+        const canaisArray = canais; // Definindo globalmente para o anti-stall
         const cardsElements = [];
         const fragment = document.createDocumentFragment();
 
@@ -556,8 +563,6 @@ https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8
             tocar(primeiroCanal, primeiroElemento, 0);
         }
 
-        // ================= SUPORTE A CONTROLE REMOTO DE SMART TV =================
-        // Mantém a roleta focada na página para capturar as setas do controle
         window.addEventListener('load', () => {
             roletaContainer.focus();
         });
@@ -565,19 +570,16 @@ https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8
         window.addEventListener('keydown', (e) => {
             if (canais.length === 0) return;
 
-            // Seta para a Direita ou Seta para Baixo no controle remoto
             if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
                 e.preventDefault();
                 currentIndex = (currentIndex + 1) % canais.length;
                 tocar(canais[currentIndex], cardsElements[currentIndex], currentIndex);
             } 
-            // Seta para a Esquerda ou Seta para Cima no controle remoto
             else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
                 e.preventDefault();
                 currentIndex = (currentIndex - 1 + canais.length) % canais.length;
                 tocar(canais[currentIndex], cardsElements[currentIndex], currentIndex);
             }
-            // Tecla Enter ou OK do controle remoto para garantir foco/play
             else if (e.key === 'Enter') {
                 e.preventDefault();
                 tocar(canais[currentIndex], cardsElements[currentIndex], currentIndex);
