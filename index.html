@@ -47,6 +47,7 @@
             padding: 0 4%;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             z-index: 10;
+            transition: opacity 0.4s ease, transform 0.4s ease;
         }
 
         .brand-logo {
@@ -96,7 +97,6 @@
             justify-content: center;
             align-items: center;
             position: relative;
-            max-height: 62vh;
         }
 
         #player-container {
@@ -117,7 +117,7 @@
 
         .player-info-overlay {
             position: absolute;
-            bottom: 15px;
+            bottom: 25px;
             left: 20px;
             background: rgba(0, 0, 0, 0.7);
             backdrop-filter: blur(8px);
@@ -126,6 +126,7 @@
             border-left: 4px solid var(--netflix-red);
             z-index: 5;
             pointer-events: none;
+            transition: opacity 0.4s ease;
         }
 
         .player-channel-name {
@@ -141,17 +142,34 @@
             letter-spacing: 0.5px;
         }
 
-        /* ================= ROLETA HORIZONTAL ================= */
+        /* ================= ROLETA HORIZONTAL (OCULTÁVEL) ================= */
         #roleta-section {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
             height: 160px;
-            background: #141418;
+            background: rgba(20, 20, 24, 0.95);
+            backdrop-filter: blur(10px);
             border-top: 1px solid rgba(255, 255, 255, 0.06);
             display: flex;
             flex-direction: column;
             justify-content: center;
             padding: 0 20px;
-            box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
-            z-index: 10;
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.8);
+            z-index: 20;
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease;
+        }
+
+        /* Estado Oculto da barra */
+        body.hide-ui header,
+        body.hide-ui #roleta-section,
+        body.hide-ui .player-info-overlay {
+            opacity: 0;
+            pointer-events: none;
+        }
+        body.hide-ui #roleta-section {
+            transform: translateY(100%);
         }
 
         .roleta-titulo {
@@ -225,9 +243,6 @@
         }
 
         @media (max-width: 768px) {
-            #main-content {
-                max-height: 45vh;
-            }
             #roleta-section {
                 height: 145px;
                 padding: 0 10px;
@@ -255,7 +270,7 @@
             <div id="player-channel-group" class="player-channel-group">AGUARDE</div>
         </div>
         <div id="player-container">
-            <video id="video" controls autoplay muted playsinline></video>
+            <video id="video" controls autoplay playsinline></video>
         </div>
     </div>
 
@@ -277,28 +292,26 @@
         let lastTime = 0;
         let stallCount = 0;
         let currentIndex = 0;
-        let selectionTimer = null;
-        let userInteracted = false;
+        let uiTimeout = null;
 
-        // Detecta qualquer primeira interação do usuário para armar as permissões automáticas do navegador
-        window.addEventListener('pointerdown', () => { userInteracted = true; }, { once: true });
-        window.addEventListener('keydown', () => { userInteracted = true; }, { once: true });
-
-        // Função para resetar e iniciar o timer de 15 segundos
-        function resetSelectionTimer() {
-            clearTimeout(selectionTimer);
-            selectionTimer = setTimeout(() => {
-                triggerAutoSelection();
-            }, 15000); // 15 segundos
+        // Função para mostrar a barra de canais e reiniciar o temporizador de 15 segundos para sumir
+        function showUI() {
+            document.body.classList.remove('hide-ui');
+            clearTimeout(uiTimeout);
+            uiTimeout = setTimeout(() => {
+                document.body.classList.add('hide-ui');
+            }, 15000); // 15 segundos inativo
         }
 
-        // Função executada automaticamente após 15 segundos sem interrupção
-        function triggerAutoSelection() {
-            // 1. Libera o áudio automaticamente
+        // Eventos que detectam movimento do mouse, toque na tela ou teclas do controle
+        window.addEventListener('mousemove', showUI);
+        window.addEventListener('touchstart', showUI);
+        window.addEventListener('keydown', showUI);
+
+        // Força a entrada em tela cheia e libera o áudio no primeiro clique/toque de inicialização da página
+        function ativarTelaCheiaInicial() {
             video.muted = false;
             video.play().catch(() => {});
-
-            // 2. Tenta entrar em tela cheia automaticamente
             const elem = document.documentElement;
             if (!document.fullscreenElement) {
                 if (elem.requestFullscreen) {
@@ -309,7 +322,13 @@
                     elem.msRequestFullscreen();
                 }
             }
+            // Remove o ouvinte inicial após o primeiro toque para não atrapalhar
+            window.removeEventListener('click', ativarTelaCheiaInicial);
+            window.removeEventListener('keydown', ativarTelaCheiaInicial);
         }
+
+        window.addEventListener('click', ativarTelaCheiaInicial, { once: true });
+        window.addEventListener('keydown', ativarTelaCheiaInicial, { once: true });
 
         function startAntiStall() {
             setInterval(() => {
@@ -377,9 +396,7 @@
                 video.play().catch(() => {});
             }
 
-            // Inicia mudo para garantir estabilidade e reinicia o cronômetro de 15s
-            video.muted = true;
-            resetSelectionTimer();
+            showUI(); // Mostra a interface ao trocar de canal e reinicia o timer
         }
 
         const m3u = `
@@ -602,10 +619,13 @@ https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8
 
         window.addEventListener('load', () => {
             roletaContainer.focus();
+            showUI(); // Já inicia mostrando a interface
         });
 
         window.addEventListener('keydown', (e) => {
             if (canais.length === 0) return;
+
+            showUI(); // Acende a barra sempre que apertar qualquer tecla
 
             if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
                 e.preventDefault();
@@ -620,13 +640,6 @@ https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8
             else if (e.key === 'Enter') {
                 e.preventDefault();
                 tocar(canais[currentIndex], cardsElements[currentIndex], currentIndex);
-                video.muted = false;
-                video.play().catch(() => {});
-                const elem = document.documentElement;
-                if (!document.fullscreenElement && elem.requestFullscreen) {
-                    elem.requestFullscreen().catch(() => {});
-                }
-                clearTimeout(selectionTimer);
             }
         });
 
