@@ -255,6 +255,7 @@
             <div id="player-channel-group" class="player-channel-group">AGUARDE</div>
         </div>
         <div id="player-container">
+            <!-- Iniciando mudo por padrão para garantir reprodução automática inicial -->
             <video id="video" controls autoplay muted playsinline></video>
         </div>
     </div>
@@ -266,7 +267,6 @@
 
     <script>
         const video = document.getElementById('video');
-        const mainContent = document.getElementById('main-content');
         const roletaContainer = document.getElementById('roleta-container');
         const statusText = document.getElementById('status-text');
         const statusDot = document.getElementById('status-dot');
@@ -280,16 +280,21 @@
         let currentIndex = 0;
         let selectionTimer = null;
 
-        // Função para resetar e iniciar o timer de 15 segundos
+        // Função para resetar e iniciar o timer de 15 segundos de permanência no canal
         function resetSelectionTimer() {
             clearTimeout(selectionTimer);
             selectionTimer = setTimeout(() => {
-                enterFullscreen();
+                triggerAutoSelection();
             }, 15000); // 15 segundos
         }
 
-        // Função para entrar em tela cheia
-        function enterFullscreen() {
+        // Função executada automaticamente após 15 segundos sem mexer
+        function triggerAutoSelection() {
+            // 1. Tentar liberar o áudio (desmutar) automaticamente
+            video.muted = false;
+            video.play().catch(() => {});
+
+            // 2. Tentar entrar em tela cheia automaticamente
             const elem = document.documentElement;
             if (!document.fullscreenElement) {
                 if (elem.requestFullscreen) {
@@ -368,7 +373,8 @@
                 video.play().catch(() => {});
             }
 
-            // Reinicia o tempo de contagem sempre que mudar de canal
+            // Cada canal novo inicia mudo para garantir reprodução fluida e reinicia o cronômetro de 15s
+            video.muted = true;
             resetSelectionTimer();
         }
 
@@ -610,8 +616,13 @@ https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8
             else if (e.key === 'Enter') {
                 e.preventDefault();
                 tocar(canais[currentIndex], cardsElements[currentIndex], currentIndex);
-                // Se pressionar Enter, entra imediatamente em tela cheia
-                enterFullscreen();
+                // Se pressionar Enter, força liberação de áudio e tela cheia imediata
+                video.muted = false;
+                video.play().catch(() => {});
+                const elem = document.documentElement;
+                if (!document.fullscreenElement && elem.requestFullscreen) {
+                    elem.requestFullscreen().catch(() => {});
+                }
                 clearTimeout(selectionTimer);
             }
         });
