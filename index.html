@@ -266,6 +266,7 @@
 
     <script>
         const video = document.getElementById('video');
+        const mainContent = document.getElementById('main-content');
         const roletaContainer = document.getElementById('roleta-container');
         const statusText = document.getElementById('status-text');
         const statusDot = document.getElementById('status-dot');
@@ -277,6 +278,29 @@
         let lastTime = 0;
         let stallCount = 0;
         let currentIndex = 0;
+        let selectionTimer = null;
+
+        // Função para resetar e iniciar o timer de 15 segundos
+        function resetSelectionTimer() {
+            clearTimeout(selectionTimer);
+            selectionTimer = setTimeout(() => {
+                enterFullscreen();
+            }, 15000); // 15 segundos
+        }
+
+        // Função para entrar em tela cheia
+        function enterFullscreen() {
+            const elem = document.documentElement;
+            if (!document.fullscreenElement) {
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen().catch(() => {});
+                } else if (elem.webkitRequestFullscreen) {
+                    elem.webkitRequestFullscreen();
+                } else if (elem.msRequestFullscreen) {
+                    elem.msRequestFullscreen();
+                }
+            }
+        }
 
         function startAntiStall() {
             setInterval(() => {
@@ -343,6 +367,9 @@
                 video.src = canalObj.url;
                 video.play().catch(() => {});
             }
+
+            // Reinicia o tempo de contagem sempre que mudar de canal
+            resetSelectionTimer();
         }
 
         const m3u = `
@@ -531,7 +558,7 @@ https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8
         }
 
         const canais = parseM3U(m3u);
-        const canaisArray = canais; // Definindo globalmente para o anti-stall
+        const canaisArray = canais; 
         const cardsElements = [];
         const fragment = document.createDocumentFragment();
 
@@ -583,6 +610,9 @@ https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8
             else if (e.key === 'Enter') {
                 e.preventDefault();
                 tocar(canais[currentIndex], cardsElements[currentIndex], currentIndex);
+                // Se pressionar Enter, entra imediatamente em tela cheia
+                enterFullscreen();
+                clearTimeout(selectionTimer);
             }
         });
 
