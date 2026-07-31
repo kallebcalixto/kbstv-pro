@@ -255,7 +255,6 @@
             <div id="player-channel-group" class="player-channel-group">AGUARDE</div>
         </div>
         <div id="player-container">
-            <!-- Iniciando mudo por padrão para garantir reprodução automática inicial -->
             <video id="video" controls autoplay muted playsinline></video>
         </div>
     </div>
@@ -279,8 +278,13 @@
         let stallCount = 0;
         let currentIndex = 0;
         let selectionTimer = null;
+        let userInteracted = false;
 
-        // Função para resetar e iniciar o timer de 15 segundos de permanência no canal
+        // Detecta qualquer primeira interação do usuário para armar as permissões automáticas do navegador
+        window.addEventListener('pointerdown', () => { userInteracted = true; }, { once: true });
+        window.addEventListener('keydown', () => { userInteracted = true; }, { once: true });
+
+        // Função para resetar e iniciar o timer de 15 segundos
         function resetSelectionTimer() {
             clearTimeout(selectionTimer);
             selectionTimer = setTimeout(() => {
@@ -288,13 +292,13 @@
             }, 15000); // 15 segundos
         }
 
-        // Função executada automaticamente após 15 segundos sem mexer
+        // Função executada automaticamente após 15 segundos sem interrupção
         function triggerAutoSelection() {
-            // 1. Tentar liberar o áudio (desmutar) automaticamente
+            // 1. Libera o áudio automaticamente
             video.muted = false;
             video.play().catch(() => {});
 
-            // 2. Tentar entrar em tela cheia automaticamente
+            // 2. Tenta entrar em tela cheia automaticamente
             const elem = document.documentElement;
             if (!document.fullscreenElement) {
                 if (elem.requestFullscreen) {
@@ -373,7 +377,7 @@
                 video.play().catch(() => {});
             }
 
-            // Cada canal novo inicia mudo para garantir reprodução fluida e reinicia o cronômetro de 15s
+            // Inicia mudo para garantir estabilidade e reinicia o cronômetro de 15s
             video.muted = true;
             resetSelectionTimer();
         }
@@ -616,7 +620,6 @@ https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8
             else if (e.key === 'Enter') {
                 e.preventDefault();
                 tocar(canais[currentIndex], cardsElements[currentIndex], currentIndex);
-                // Se pressionar Enter, força liberação de áudio e tela cheia imediata
                 video.muted = false;
                 video.play().catch(() => {});
                 const elem = document.documentElement;
