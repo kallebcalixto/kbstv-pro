@@ -294,21 +294,18 @@
         let currentIndex = 0;
         let uiTimeout = null;
 
-        // Função para mostrar a barra de canais e reiniciar o temporizador de 15 segundos para sumir
         function showUI() {
             document.body.classList.remove('hide-ui');
             clearTimeout(uiTimeout);
             uiTimeout = setTimeout(() => {
                 document.body.classList.add('hide-ui');
-            }, 15000); // 15 segundos inativo
+            }, 15000);
         }
 
-        // Eventos que detectam movimento do mouse, toque na tela ou teclas do controle
         window.addEventListener('mousemove', showUI);
         window.addEventListener('touchstart', showUI);
         window.addEventListener('keydown', showUI);
 
-        // Força a entrada em tela cheia e libera o áudio no primeiro clique/toque de inicialização da página
         function ativarTelaCheiaInicial() {
             video.muted = false;
             video.play().catch(() => {});
@@ -322,7 +319,6 @@
                     elem.msRequestFullscreen();
                 }
             }
-            // Remove o ouvinte inicial após o primeiro toque para não atrapalhar
             window.removeEventListener('click', ativarTelaCheiaInicial);
             window.removeEventListener('keydown', ativarTelaCheiaInicial);
         }
@@ -367,6 +363,9 @@
             
             if (Hls.isSupported()) {
                 hls = new Hls({
+                    xhrSetup: function (xhr, url) {
+                        xhr.withCredentials = false;
+                    },
                     manifestLoadingMaxRetry: 10,
                     levelLoadingMaxRetry: 10
                 });
@@ -396,13 +395,13 @@
                 video.play().catch(() => {});
             }
 
-            showUI(); // Mostra a interface ao trocar de canal e reinicia o timer
+            showUI();
         }
 
         const m3u = `
 #EXTM3U
 #EXTINF:-1 tvg-id="kbstv.colombo" tvg-name="KBS TV Colombo" tvg-logo="https://yt3.googleusercontent.com/2IVQ9GRPg3OFWtm9qEC4DiHyiKHc-wmUCtR3pPEVhNT0o4gO-HlzWYUxYOS4EKaJ3kys40Gt-Pc=s900-c-k-c0x00ffffff-no-rj" group-title="📺 KBS TV",KBS TV COLOMBO
-https://live.kbstvpro.com.br/live/canal1.m3u8 
+https://live.kbstvpro.com.br/live/canal1.m3u8
 #EXTINF:-1 tvg-id="Canal_3" tvg-name="Canal 3" tvg-logo="https://i.imgur.com/QbYQmYX.png" group-title="Canais",Canal 3
 https://cdn.mbcbrasil.tv.br/tv3_web/main_stream.m3u8?session=ce786c50-08af-4d1a-8b79-91b1d2f6bbe4
 #EXTINF:-1 tvg-id="Canal_SBT" tvg-name="Canal_SBT" tvg-logo="https://upload.wikimedia.org/wikipedia/pt/thumb/4/41/Logotipo_do_SBT.svg/500px-Logotipo_do_SBT.svg.png" group-title="Canais",SBT
@@ -617,13 +616,13 @@ https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8
 
         window.addEventListener('load', () => {
             roletaContainer.focus();
-            showUI(); // Já inicia mostrando a interface
+            showUI();
         });
 
         window.addEventListener('keydown', (e) => {
             if (canais.length === 0) return;
 
-            showUI(); // Acende a barra sempre que apertar qualquer tecla
+            showUI();
 
             if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
                 e.preventDefault();
