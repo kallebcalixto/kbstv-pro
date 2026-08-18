@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KBS TV PRO - Smart TV Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     
     <style>
         :root {
@@ -82,14 +81,9 @@
             animation: pulse 1.5s infinite;
         }
 
-        .dot.loading {
-            background: #ffc107;
-            box-shadow: 0 0 8px #ffc107;
-        }
-
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 
-        /* ================= ÁREA DO PLAYER ================= */
+        /* ================= ÁREA DO PLAYER VIA IFRAME ================= */
         #main-content {
             flex: 1;
             background: #000;
@@ -107,12 +101,11 @@
             justify-content: center;
         }
 
-        video {
+        .video-iframe {
             width: 100%;
             height: 100%;
-            object-fit: contain;
+            border: none;
             background: #000;
-            outline: none;
         }
 
         .player-info-overlay {
@@ -161,7 +154,6 @@
             transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease;
         }
 
-        /* Estado Oculto da barra */
         body.hide-ui header,
         body.hide-ui #roleta-section,
         body.hide-ui .player-info-overlay {
@@ -270,7 +262,8 @@
             <div id="player-channel-group" class="player-channel-group">AGUARDE</div>
         </div>
         <div id="player-container">
-            <video id="video" controls autoplay playsinline></video>
+            <!-- Usa o Iframe idêntico ao Assemco puxando o player do servidor Nginx -->
+            <iframe class="video-iframe" src="https://live.kbstvpro.com.br/player.html" allow="autoplay; fullscreen; encrypted-media"></iframe>
         </div>
     </div>
 
@@ -280,17 +273,10 @@
     </div>
 
     <script>
-        const video = document.getElementById('video');
         const roletaContainer = document.getElementById('roleta-container');
-        const statusText = document.getElementById('status-text');
-        const statusDot = document.getElementById('status-dot');
         const playerChannelName = document.getElementById('player-channel-name');
         const playerChannelGroup = document.getElementById('player-channel-group');
 
-        let hls;
-        let currentUrl = "";
-        let lastTime = 0;
-        let stallCount = 0;
         let currentIndex = 0;
         let uiTimeout = null;
 
@@ -306,47 +292,6 @@
         window.addEventListener('touchstart', showUI);
         window.addEventListener('keydown', showUI);
 
-        function ativarTelaCheiaInicial() {
-            video.muted = false;
-            video.play().catch(() => {});
-            const elem = document.documentElement;
-            if (!document.fullscreenElement) {
-                if (elem.requestFullscreen) {
-                    elem.requestFullscreen().catch(() => {});
-                } else if (elem.webkitRequestFullscreen) {
-                    elem.webkitRequestFullscreen();
-                } else if (elem.msRequestFullscreen) {
-                    elem.msRequestFullscreen();
-                }
-            }
-            window.removeEventListener('click', ativarTelaCheiaInicial);
-            window.removeEventListener('keydown', ativarTelaCheiaInicial);
-        }
-
-        window.addEventListener('click', ativarTelaCheiaInicial, { once: true });
-        window.addEventListener('keydown', ativarTelaCheiaInicial, { once: true });
-
-        function startAntiStall() {
-            setInterval(() => {
-                if (currentUrl && !video.paused) {
-                    if (video.currentTime === lastTime) {
-                        stallCount++;
-                        statusText.innerText = `RECONECTANDO (${5 - stallCount}s)`;
-                        statusDot.className = "dot loading";
-                        if (stallCount >= 5) {
-                            tocar(canaisArray[currentIndex]);
-                            stallCount = 0;
-                        }
-                    } else {
-                        stallCount = 0;
-                        statusText.innerText = "AO VIVO";
-                        statusDot.className = "dot";
-                        lastTime = video.currentTime;
-                    }
-                }
-            }, 1000);
-        }
-
         function tocar(canalObj, elemento, index) {
             document.querySelectorAll('.roleta-card').forEach(el => el.classList.remove('active'));
             if(elemento) {
@@ -355,46 +300,8 @@
                 if (index !== undefined) currentIndex = index;
             }
 
-            currentUrl = canalObj.url;
             playerChannelName.innerText = canalObj.nome.toUpperCase();
             playerChannelGroup.innerText = canalObj.grupo;
-
-            if (hls) hls.destroy();
-            
-            if (Hls.isSupported()) {
-                hls = new Hls({
-                    xhrSetup: function (xhr, url) {
-                        xhr.withCredentials = false;
-                    },
-                    manifestLoadingMaxRetry: 10,
-                    levelLoadingMaxRetry: 10
-                });
-                hls.loadSource(canalObj.url);
-                hls.attachMedia(video);
-                hls.on(Hls.Events.MANIFEST_PARSED, () => { 
-                    video.play().catch(() => {}); 
-                    statusText.innerText = "AO VIVO";
-                });
-                hls.on(Hls.Events.ERROR, (event, data) => { 
-                    if(data.fatal) {
-                        switch(data.type) {
-                            case Hls.ErrorTypes.NETWORK_ERROR:
-                                hls.startLoad();
-                                break;
-                            case Hls.ErrorTypes.MEDIA_ERROR:
-                                hls.recoverMediaError();
-                                break;
-                            default:
-                                hls.destroy();
-                                break;
-                        }
-                    }
-                });
-            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                video.src = canalObj.url;
-                video.play().catch(() => {});
-            }
-
             showUI();
         }
 
@@ -582,7 +489,6 @@ https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8
         }
 
         const canais = parseM3U(m3u);
-        const canaisArray = canais; 
         const cardsElements = [];
         const fragment = document.createDocumentFragment();
 
@@ -621,7 +527,6 @@ https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8
 
         window.addEventListener('keydown', (e) => {
             if (canais.length === 0) return;
-
             showUI();
 
             if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
@@ -639,8 +544,6 @@ https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8
                 tocar(canais[currentIndex], cardsElements[currentIndex], currentIndex);
             }
         });
-
-        startAntiStall();
     </script>
 </body>
 </html>
