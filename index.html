@@ -279,25 +279,30 @@
             playerChannelName.innerText = canalObj.nome.toUpperCase();
             playerChannelGroup.innerText = canalObj.grupo;
 
-            let streamUrl = canalObj.url;
-
-            // Se for o canal da KBS TV, passamos por um proxy CORS público para contornar o bloqueio do navegador
-            if (canalObj.url.includes('kbstvpro.com.br')) {
-                streamUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(canalObj.url);
+            // Destrói instância anterior do HLS se existir
+            if (hlsInstance) {
+                hlsInstance.destroy();
+                hlsInstance = null;
             }
 
+            // Se for o canal próprio da KBS TV, tratamos direto no nativo do browser sem requisições XHR do hls.js
+            if (canalObj.url.includes('kbstvpro.com.br')) {
+                videoPlayer.src = canalObj.url;
+                videoPlayer.load();
+                videoPlayer.play().catch(e => console.log("Autoplay bloqueado pelo browser"));
+                return;
+            }
+
+            // Para os demais canais da lista, usamos o HLS.js normalmente
             if (Hls.isSupported()) {
-                if (hlsInstance) {
-                    hlsInstance.destroy();
-                }
                 hlsInstance = new Hls();
-                hlsInstance.loadSource(streamUrl);
+                hlsInstance.loadSource(canalObj.url);
                 hlsInstance.attachMedia(videoPlayer);
                 hlsInstance.on(Hls.Events.MANIFEST_PARSED, function() {
                     videoPlayer.play().catch(e => console.log("Autoplay bloqueado pelo browser"));
                 });
             } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
-                videoPlayer.src = streamUrl;
+                videoPlayer.src = canalObj.url;
                 videoPlayer.addEventListener('loadedmetadata', function() {
                     videoPlayer.play().catch(e => console.log("Autoplay bloqueado"));
                 });
