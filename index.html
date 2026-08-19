@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KBS TV PRO - Universal Edition</title>
+    <title>KBS TV PRO - Ultimate Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <!-- Biblioteca HLS para rodar os links m3u8 perfeitamente em qualquer navegador e celular -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     
     <style>
         :root {
             --netflix-red: #e50914;
-            --netflix-black: #101014;
+            --netflix-black: #0b0b0e;
             --card-bg: #1f1f24;
             --text-main: #ffffff;
             --text-muted: #8b92a5;
@@ -82,7 +84,7 @@
 
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 
-        /* ================= ÁREA DO PLAYER (ESTILO YOUTUBE - PROPORÇÃO CORRETA) ================= */
+        /* ================= ÁREA DO PLAYER (ESTILO YOUTUBE PERFEITO) ================= */
         #main-content {
             width: 100%;
             height: calc(100% - 48px - 110px);
@@ -102,13 +104,13 @@
             background: #000;
         }
 
-        .video-iframe {
+        /* O video player com object-fit: contain garante o formato YouTube (com tarjas pretas automáticas, sem esticar) */
+        video {
             width: 100%;
             height: 100%;
-            border: none;
+            object-fit: contain;
             background: #000;
-            /* Mantém a proporção exata igual ao YouTube, evitando esticar a imagem */
-            object-fit: contain; 
+            outline: none;
         }
 
         .player-info-overlay {
@@ -249,8 +251,8 @@
             <div id="player-channel-group" class="player-channel-group">AGUARDE</div>
         </div>
         <div id="player-container">
-            <!-- Iframe inteligente que recebe a URL do stream sem esticar a imagem -->
-            <iframe id="video-iframe" class="video-iframe" src="" allow="autoplay; fullscreen; encrypted-media"></iframe>
+            <!-- Player nativo de vídeo HTML5, sem iframe travado -->
+            <video id="video-player" controls autoplay playsinline></video>
         </div>
     </div>
 
@@ -263,9 +265,10 @@
         const roletaContainer = document.getElementById('roleta-container');
         const playerChannelName = document.getElementById('player-channel-name');
         const playerChannelGroup = document.getElementById('player-channel-group');
-        const videoIframe = document.getElementById('video-iframe');
+        const videoPlayer = document.getElementById('video-player');
 
         let currentIndex = 0;
+        let hlsInstance = null;
 
         function tocar(canalObj, elemento, index) {
             document.querySelectorAll('.roleta-card').forEach(el => el.classList.remove('active'));
@@ -278,8 +281,24 @@
             playerChannelName.innerText = canalObj.nome.toUpperCase();
             playerChannelGroup.innerText = canalObj.grupo;
 
-            // Envia o link do canal corretamente para o player do servidor via parâmetro GET
-            videoIframe.src = `https://live.kbstvpro.com.br/player.html?src=${encodeURIComponent(canalObj.url)}`;
+            // Carrega o link m3u8 direto no motor HLS nativo
+            if (Hls.isSupported()) {
+                if (hlsInstance) {
+                    hlsInstance.destroy();
+                }
+                hlsInstance = new Hls();
+                hlsInstance.loadSource(canalObj.url);
+                hlsInstance.attachMedia(videoPlayer);
+                hlsInstance.on(Hls.Events.MANIFEST_PARSED, function() {
+                    videoPlayer.play().catch(e => console.log("Autoplay bloqueado pelo browser"));
+                });
+            } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+                // Suporte nativo para Safari / iOS
+                videoPlayer.src = canalObj.url;
+                videoPlayer.addEventListener('loadedmetadata', function() {
+                    videoPlayer.play().catch(e => console.log("Autoplay bloqueado"));
+                });
+            }
         }
 
         const m3u = `
