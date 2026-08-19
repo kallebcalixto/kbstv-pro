@@ -104,7 +104,7 @@
             background: #000;
         }
 
-        /* O video player com object-fit: contain garante o formato YouTube (com tarjas pretas automáticas, sem esticar) */
+        /* O object-fit: contain garante o formato YouTube (com tarjas pretas automáticas, sem esticar a imagem) */
         video {
             width: 100%;
             height: 100%;
@@ -251,7 +251,6 @@
             <div id="player-channel-group" class="player-channel-group">AGUARDE</div>
         </div>
         <div id="player-container">
-            <!-- Player nativo de vídeo HTML5, sem iframe travado -->
             <video id="video-player" controls autoplay playsinline></video>
         </div>
     </div>
@@ -281,20 +280,29 @@
             playerChannelName.innerText = canalObj.nome.toUpperCase();
             playerChannelGroup.innerText = canalObj.grupo;
 
-            // Carrega o link m3u8 direto no motor HLS nativo
+            // Corrige links http para https se o site estiver rodando em https (evita bloqueio misto do navegador)
+            let streamUrl = canalObj.url;
+            if (window.location.protocol === 'https:' && streamUrl.startsWith('http:')) {
+                streamUrl = streamUrl.replace('http:', 'https:');
+            }
+
             if (Hls.isSupported()) {
                 if (hlsInstance) {
                     hlsInstance.destroy();
                 }
                 hlsInstance = new Hls();
-                hlsInstance.loadSource(canalObj.url);
+                hlsInstance.loadSource(streamUrl);
                 hlsInstance.attachMedia(videoPlayer);
                 hlsInstance.on(Hls.Events.MANIFEST_PARSED, function() {
                     videoPlayer.play().catch(e => console.log("Autoplay bloqueado pelo browser"));
                 });
+                hlsInstance.on(Hls.Events.ERROR, function(event, data) {
+                    if (data.fatal) {
+                        console.error("Erro no stream HLS:", data);
+                    }
+                });
             } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
-                // Suporte nativo para Safari / iOS
-                videoPlayer.src = canalObj.url;
+                videoPlayer.src = streamUrl;
                 videoPlayer.addEventListener('loadedmetadata', function() {
                     videoPlayer.play().catch(e => console.log("Autoplay bloqueado"));
                 });
