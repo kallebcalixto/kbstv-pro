@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KBS TV PRO - Universal Edition</title>
+    <title>KBS TV PRO - Mobile & TV Perfect</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
     
     <style>
@@ -38,19 +38,19 @@
 
         /* ================= HEADER ================= */
         header {
-            height: 50px;
-            background: rgba(16, 16, 20, 0.95);
+            height: 48px;
+            background: rgba(16, 16, 20, 0.98);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 16px;
+            padding: 0 14px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            z-index: 10;
-            transition: opacity 0.3s ease, transform 0.3s ease;
+            z-index: 30;
+            position: relative;
         }
 
         .brand-logo {
-            font-size: 1.1rem;
+            font-size: 1rem;
             font-weight: 900;
             letter-spacing: -0.5px;
             color: #fff;
@@ -63,21 +63,21 @@
         .live-pill {
             display: flex;
             align-items: center;
-            gap: 6px;
-            background: rgba(0, 0, 0, 0.5);
+            gap: 5px;
+            background: rgba(0, 0, 0, 0.6);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            padding: 3px 10px;
+            padding: 3px 8px;
             border-radius: 20px;
-            font-size: 0.65rem;
+            font-size: 0.6rem;
             font-weight: 700;
         }
 
         .dot {
-            width: 6px;
-            height: 6px;
+            width: 5px;
+            height: 5px;
             background: var(--netflix-red);
             border-radius: 50%;
-            box-shadow: 0 0 6px var(--netflix-red);
+            box-shadow: 0 0 5px var(--netflix-red);
             animation: pulse 1.5s infinite;
         }
 
@@ -86,7 +86,7 @@
         /* ================= ÁREA DO PLAYER ================= */
         #main-content {
             width: 100%;
-            height: calc(100% - 50px);
+            height: calc(100% - 48px - 110px); /* Deixa espaço fixo para a roleta embaixo no celular */
             background: #000;
             display: flex;
             justify-content: center;
@@ -107,77 +107,63 @@
             height: 100%;
             border: none;
             background: #000;
-            pointer-events: auto; /* Garante controle de toque total no player mobile */
+            object-fit: contain; /* Impede que a imagem estique fora da proporção */
         }
 
         .player-info-overlay {
             position: absolute;
-            bottom: 120px;
-            left: 16px;
+            top: 10px;
+            left: 14px;
             background: rgba(0, 0, 0, 0.75);
-            backdrop-filter: blur(8px);
-            padding: 6px 12px;
-            border-radius: 6px;
+            backdrop-filter: blur(6px);
+            padding: 5px 10px;
+            border-radius: 5px;
             border-left: 3px solid var(--netflix-red);
-            z-index: 5;
+            z-index: 10;
             pointer-events: none;
-            transition: opacity 0.3s ease;
         }
 
         .player-channel-name {
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             font-weight: 800;
             color: #fff;
         }
 
         .player-channel-group {
-            font-size: 0.6rem;
+            font-size: 0.55rem;
             color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
-        /* ================= ROLETA HORIZONTAL ================= */
+        /* ================= ROLETA FIXA EMBAIXO (NUNCA SOME NO CELULAR) ================= */
         #roleta-section {
             position: absolute;
             bottom: 0;
             left: 0;
             width: 100%;
             height: 110px;
-            background: rgba(20, 20, 24, 0.95);
-            backdrop-filter: blur(10px);
-            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(16, 16, 20, 0.98);
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
             display: flex;
             flex-direction: column;
             justify-content: center;
-            padding: 0 12px;
-            box-shadow: 0 -10px 30px rgba(0,0,0,0.8);
+            padding: 0 10px;
             z-index: 20;
-            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.3s ease;
-        }
-
-        body.hide-ui header,
-        body.hide-ui #roleta-section,
-        body.hide-ui .player-info-overlay {
-            opacity: 0;
-            pointer-events: none;
-        }
-        body.hide-ui #roleta-section {
-            transform: translateY(100%);
         }
 
         .roleta-titulo {
-            font-size: 0.65rem;
+            font-size: 0.6rem;
             font-weight: 800;
             color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 6px;
+            margin-bottom: 5px;
         }
 
         .roleta-container {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             overflow-x: auto;
             scroll-snap-type: x mandatory;
             padding-bottom: 4px;
@@ -187,10 +173,10 @@
         }
 
         .roleta-card {
-            flex: 0 0 110px;
-            height: 62px;
+            flex: 0 0 100px;
+            height: 60px;
             background: var(--card-bg);
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             scroll-snap-align: center;
             display: flex;
@@ -199,30 +185,27 @@
             justify-content: center;
             padding: 4px;
             border: 2px solid transparent;
-            transition: all 0.2s ease;
+            transition: transform 0.15s ease, border-color 0.15s ease;
             position: relative;
-            overflow: hidden;
         }
 
         .roleta-card img {
-            max-width: 65%;
-            max-height: 38px;
+            max-width: 60%;
+            max-height: 32px;
             object-fit: contain;
-            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
         }
 
         .roleta-card:active {
-            transform: scale(0.95);
+            transform: scale(0.92);
         }
 
         .roleta-card.active {
             border-color: var(--netflix-red);
             background: #25252b;
-            box-shadow: 0 4px 15px rgba(229, 9, 20, 0.4);
         }
 
         .roleta-card-name {
-            font-size: 0.55rem;
+            font-size: 0.5rem;
             font-weight: 700;
             color: #ccc;
             margin-top: 2px;
@@ -233,18 +216,35 @@
             text-align: center;
         }
 
-        /* Ajustes específicos para telas maiores (PC / Tablets grandes) */
+        /* ================= AJUSTES PARA COMPUTADORES E TELAS GRANDES ================= */
         @media (min-width: 768px) {
             header { height: 60px; padding: 0 24px; }
             .brand-logo { font-size: 1.2rem; }
-            #main-content { height: calc(100% - 60px); }
-            #roleta-section { height: 150px; padding: 0 20px; }
+            #main-content { height: calc(100% - 60px); } /* No PC pode usar tela inteira e a barra oculta/flutua se preferir */
+            #roleta-section {
+                height: 150px;
+                padding: 0 20px;
+                background: rgba(20, 20, 24, 0.95);
+                backdrop-filter: blur(10px);
+                transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease;
+            }
             .roleta-titulo { font-size: 0.75rem; margin-bottom: 8px; }
-            .roleta-card { flex: 0 0 140px; height: 85px; padding: 8px; }
-            .roleta-card img { max-height: 52px; }
+            .roleta-card { flex: 0 0 140px; height: 85px; padding: 8px; border-radius: 10px; }
+            .roleta-card img { max-height: 50px; }
             .roleta-card-name { font-size: 0.6rem; margin-top: 4px; }
-            .player-info-overlay { bottom: 165px; left: 20px; padding: 8px 16px; }
+            .player-info-overlay { top: 20px; left: 20px; padding: 8px 16px; }
             .player-channel-name { font-size: 1rem; }
+
+            /* Ocultar barra no PC após inatividade */
+            body.hide-ui header,
+            body.hide-ui #roleta-section,
+            body.hide-ui .player-info-overlay {
+                opacity: 0;
+                pointer-events: none;
+            }
+            body.hide-ui #roleta-section {
+                transform: translateY(100%);
+            }
         }
     </style>
 </head>
@@ -282,16 +282,16 @@
         let uiTimeout = null;
 
         function showUI() {
-            document.body.classList.remove('hide-ui');
-            clearTimeout(uiTimeout);
-            // No celular, some mais rápido (8s) se o usuário parar de mexer para dar foco total no vídeo
-            uiTimeout = setTimeout(() => {
-                document.body.classList.add('hide-ui');
-            }, 8000);
+            if (window.innerWidth >= 768) {
+                document.body.classList.remove('hide-ui');
+                clearTimeout(uiTimeout);
+                uiTimeout = setTimeout(() => {
+                    document.body.classList.add('hide-ui');
+                }, 10000);
+            }
         }
 
         window.addEventListener('mousemove', showUI);
-        window.addEventListener('touchstart', showUI);
         window.addEventListener('keydown', showUI);
 
         function tocar(canalObj, elemento, index) {
@@ -524,16 +524,6 @@ https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8
 
         window.addEventListener('load', () => {
             roletaContainer.focus();
-            showUI();
-        });
-
-        // Toque na tela do celular mostra/oculta a barra automaticamente
-        document.getElementById('main-content').addEventListener('click', () => {
-            if (document.body.classList.contains('hide-ui')) {
-                showUI();
-            } else {
-                document.body.classList.add('hide-ui');
-            }
         });
 
         window.addEventListener('keydown', (e) => {
