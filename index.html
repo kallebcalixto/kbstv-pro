@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KBS TV PRO - Mobile & TV Perfect</title>
+    <title>KBS TV PRO - Universal Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
     
     <style>
@@ -46,7 +46,6 @@
             padding: 0 14px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             z-index: 30;
-            position: relative;
         }
 
         .brand-logo {
@@ -83,10 +82,10 @@
 
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 
-        /* ================= ÁREA DO PLAYER ================= */
+        /* ================= ÁREA DO PLAYER (ESTILO YOUTUBE - PROPORÇÃO CORRETA) ================= */
         #main-content {
             width: 100%;
-            height: calc(100% - 48px - 110px); /* Deixa espaço fixo para a roleta embaixo no celular */
+            height: calc(100% - 48px - 110px);
             background: #000;
             display: flex;
             justify-content: center;
@@ -100,6 +99,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            background: #000;
         }
 
         .video-iframe {
@@ -107,7 +107,8 @@
             height: 100%;
             border: none;
             background: #000;
-            object-fit: contain; /* Impede que a imagem estique fora da proporção */
+            /* Mantém a proporção exata igual ao YouTube, evitando esticar a imagem */
+            object-fit: contain; 
         }
 
         .player-info-overlay {
@@ -136,7 +137,7 @@
             letter-spacing: 0.5px;
         }
 
-        /* ================= ROLETA FIXA EMBAIXO (NUNCA SOME NO CELULAR) ================= */
+        /* ================= ROLETA FIXA EMBAIXO ================= */
         #roleta-section {
             position: absolute;
             bottom: 0;
@@ -202,6 +203,7 @@
         .roleta-card.active {
             border-color: var(--netflix-red);
             background: #25252b;
+            box-shadow: 0 4px 15px rgba(229, 9, 20, 0.4);
         }
 
         .roleta-card-name {
@@ -216,35 +218,18 @@
             text-align: center;
         }
 
-        /* ================= AJUSTES PARA COMPUTADORES E TELAS GRANDES ================= */
+        /* ================= DESKTOP / TV ================= */
         @media (min-width: 768px) {
             header { height: 60px; padding: 0 24px; }
             .brand-logo { font-size: 1.2rem; }
-            #main-content { height: calc(100% - 60px); } /* No PC pode usar tela inteira e a barra oculta/flutua se preferir */
-            #roleta-section {
-                height: 150px;
-                padding: 0 20px;
-                background: rgba(20, 20, 24, 0.95);
-                backdrop-filter: blur(10px);
-                transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease;
-            }
+            #main-content { height: calc(100% - 60px); }
+            #roleta-section { height: 150px; padding: 0 20px; background: rgba(20, 20, 24, 0.95); backdrop-filter: blur(10px); }
             .roleta-titulo { font-size: 0.75rem; margin-bottom: 8px; }
             .roleta-card { flex: 0 0 140px; height: 85px; padding: 8px; border-radius: 10px; }
             .roleta-card img { max-height: 50px; }
             .roleta-card-name { font-size: 0.6rem; margin-top: 4px; }
             .player-info-overlay { top: 20px; left: 20px; padding: 8px 16px; }
             .player-channel-name { font-size: 1rem; }
-
-            /* Ocultar barra no PC após inatividade */
-            body.hide-ui header,
-            body.hide-ui #roleta-section,
-            body.hide-ui .player-info-overlay {
-                opacity: 0;
-                pointer-events: none;
-            }
-            body.hide-ui #roleta-section {
-                transform: translateY(100%);
-            }
         }
     </style>
 </head>
@@ -264,7 +249,8 @@
             <div id="player-channel-group" class="player-channel-group">AGUARDE</div>
         </div>
         <div id="player-container">
-            <iframe class="video-iframe" src="https://live.kbstvpro.com.br/player.html" allow="autoplay; fullscreen; encrypted-media"></iframe>
+            <!-- Iframe inteligente que recebe a URL do stream sem esticar a imagem -->
+            <iframe id="video-iframe" class="video-iframe" src="" allow="autoplay; fullscreen; encrypted-media"></iframe>
         </div>
     </div>
 
@@ -277,22 +263,9 @@
         const roletaContainer = document.getElementById('roleta-container');
         const playerChannelName = document.getElementById('player-channel-name');
         const playerChannelGroup = document.getElementById('player-channel-group');
+        const videoIframe = document.getElementById('video-iframe');
 
         let currentIndex = 0;
-        let uiTimeout = null;
-
-        function showUI() {
-            if (window.innerWidth >= 768) {
-                document.body.classList.remove('hide-ui');
-                clearTimeout(uiTimeout);
-                uiTimeout = setTimeout(() => {
-                    document.body.classList.add('hide-ui');
-                }, 10000);
-            }
-        }
-
-        window.addEventListener('mousemove', showUI);
-        window.addEventListener('keydown', showUI);
 
         function tocar(canalObj, elemento, index) {
             document.querySelectorAll('.roleta-card').forEach(el => el.classList.remove('active'));
@@ -304,7 +277,9 @@
 
             playerChannelName.innerText = canalObj.nome.toUpperCase();
             playerChannelGroup.innerText = canalObj.grupo;
-            showUI();
+
+            // Envia o link do canal corretamente para o player do servidor via parâmetro GET
+            videoIframe.src = `https://live.kbstvpro.com.br/player.html?src=${encodeURIComponent(canalObj.url)}`;
         }
 
         const m3u = `
@@ -528,7 +503,6 @@ https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8
 
         window.addEventListener('keydown', (e) => {
             if (canais.length === 0) return;
-            showUI();
 
             if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
                 e.preventDefault();
