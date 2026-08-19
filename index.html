@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>KBS TV PRO - Ultimate Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
-    <!-- Biblioteca HLS para rodar os links m3u8 perfeitamente em qualquer navegador e celular -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     
     <style>
@@ -104,7 +103,7 @@
             background: #000;
         }
 
-        /* O object-fit: contain garante o formato YouTube (com tarjas pretas automáticas, sem esticar a imagem) */
+        /* object-fit: contain garante o formato YouTube com tarjas pretas automáticas, sem esticar */
         video {
             width: 100%;
             height: 100%;
@@ -280,10 +279,11 @@
             playerChannelName.innerText = canalObj.nome.toUpperCase();
             playerChannelGroup.innerText = canalObj.grupo;
 
-            // Corrige links http para https se o site estiver rodando em https (evita bloqueio misto do navegador)
             let streamUrl = canalObj.url;
-            if (window.location.protocol === 'https:' && streamUrl.startsWith('http:')) {
-                streamUrl = streamUrl.replace('http:', 'https:');
+
+            // Se for o canal da KBS TV, passamos por um proxy CORS público para contornar o bloqueio do navegador
+            if (canalObj.url.includes('kbstvpro.com.br')) {
+                streamUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(canalObj.url);
             }
 
             if (Hls.isSupported()) {
@@ -295,11 +295,6 @@
                 hlsInstance.attachMedia(videoPlayer);
                 hlsInstance.on(Hls.Events.MANIFEST_PARSED, function() {
                     videoPlayer.play().catch(e => console.log("Autoplay bloqueado pelo browser"));
-                });
-                hlsInstance.on(Hls.Events.ERROR, function(event, data) {
-                    if (data.fatal) {
-                        console.error("Erro no stream HLS:", data);
-                    }
                 });
             } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
                 videoPlayer.src = streamUrl;
