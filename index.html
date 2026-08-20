@@ -2,15 +2,15 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>KBS TV PRO - Ultimate Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KBS TV PRO - Smart TV Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     
     <style>
         :root {
             --netflix-red: #e50914;
-            --netflix-black: #0b0b0e;
+            --netflix-black: #101014;
             --card-bg: #1f1f24;
             --text-main: #ffffff;
             --text-muted: #8b92a5;
@@ -23,34 +23,35 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        body, html {
+        body {
             background-color: var(--netflix-black);
             color: var(--text-main);
             font-family: 'Inter', sans-serif;
-            width: 100%;
-            height: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
             overflow: hidden;
-            position: fixed;
         }
 
-        ::-webkit-scrollbar { height: 4px; width: 4px; }
+        ::-webkit-scrollbar { height: 6px; }
         ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
 
         /* ================= HEADER ================= */
         header {
-            height: 48px;
-            background: rgba(16, 16, 20, 0.98);
+            height: 60px;
+            background: rgba(16, 16, 20, 0.95);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 14px;
+            padding: 0 4%;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            z-index: 30;
+            z-index: 10;
+            transition: opacity 0.4s ease, transform 0.4s ease;
         }
 
         .brand-logo {
-            font-size: 1rem;
+            font-size: 1.2rem;
             font-weight: 900;
             letter-spacing: -0.5px;
             color: #fff;
@@ -63,30 +64,34 @@
         .live-pill {
             display: flex;
             align-items: center;
-            gap: 5px;
-            background: rgba(0, 0, 0, 0.6);
+            gap: 6px;
+            background: rgba(0, 0, 0, 0.5);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            padding: 3px 8px;
+            padding: 4px 12px;
             border-radius: 20px;
-            font-size: 0.6rem;
+            font-size: 0.7rem;
             font-weight: 700;
         }
 
         .dot {
-            width: 5px;
-            height: 5px;
+            width: 7px;
+            height: 7px;
             background: var(--netflix-red);
             border-radius: 50%;
-            box-shadow: 0 0 5px var(--netflix-red);
+            box-shadow: 0 0 8px var(--netflix-red);
             animation: pulse 1.5s infinite;
+        }
+
+        .dot.loading {
+            background: #ffc107;
+            box-shadow: 0 0 8px #ffc107;
         }
 
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
 
-        /* ================= ÁREA DO PLAYER (ESTILO YOUTUBE PERFEITO) ================= */
+        /* ================= ÁREA DO PLAYER ================= */
         #main-content {
-            width: 100%;
-            height: calc(100% - 48px - 110px);
+            flex: 1;
             background: #000;
             display: flex;
             justify-content: center;
@@ -100,10 +105,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #000;
         }
 
-        /* object-fit: contain garante o formato YouTube com tarjas pretas automáticas, sem esticar */
         video {
             width: 100%;
             height: 100%;
@@ -114,104 +117,124 @@
 
         .player-info-overlay {
             position: absolute;
-            top: 10px;
-            left: 14px;
-            background: rgba(0, 0, 0, 0.75);
-            backdrop-filter: blur(6px);
-            padding: 5px 10px;
-            border-radius: 5px;
-            border-left: 3px solid var(--netflix-red);
-            z-index: 10;
+            bottom: 25px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            padding: 8px 16px;
+            border-radius: 8px;
+            border-left: 4px solid var(--netflix-red);
+            z-index: 5;
             pointer-events: none;
+            transition: opacity 0.4s ease;
         }
 
         .player-channel-name {
-            font-size: 0.8rem;
+            font-size: 1rem;
             font-weight: 800;
             color: #fff;
         }
 
         .player-channel-group {
-            font-size: 0.55rem;
+            font-size: 0.65rem;
             color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
-        /* ================= ROLETA FIXA EMBAIXO ================= */
+        /* ================= ROLETA HORIZONTAL (OCULTÁVEL) ================= */
         #roleta-section {
             position: absolute;
             bottom: 0;
             left: 0;
             width: 100%;
-            height: 110px;
-            background: rgba(16, 16, 20, 0.98);
-            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            height: 160px;
+            background: rgba(20, 20, 24, 0.95);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
             display: flex;
             flex-direction: column;
             justify-content: center;
-            padding: 0 10px;
+            padding: 0 20px;
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.8);
             z-index: 20;
+            transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease;
+        }
+
+        /* Estado Oculto da barra */
+        body.hide-ui header,
+        body.hide-ui #roleta-section,
+        body.hide-ui .player-info-overlay {
+            opacity: 0;
+            pointer-events: none;
+        }
+        body.hide-ui #roleta-section {
+            transform: translateY(100%);
         }
 
         .roleta-titulo {
-            font-size: 0.6rem;
+            font-size: 0.75rem;
             font-weight: 800;
             color: var(--text-muted);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 5px;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
         }
 
         .roleta-container {
             display: flex;
-            gap: 8px;
+            gap: 14px;
             overflow-x: auto;
             scroll-snap-type: x mandatory;
-            padding-bottom: 4px;
+            padding-bottom: 8px;
             scroll-behavior: smooth;
             outline: none;
-            -webkit-overflow-scrolling: touch;
         }
 
         .roleta-card {
-            flex: 0 0 100px;
-            height: 60px;
+            flex: 0 0 140px;
+            height: 85px;
             background: var(--card-bg);
-            border-radius: 6px;
+            border-radius: 10px;
             cursor: pointer;
             scroll-snap-align: center;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 4px;
+            padding: 8px;
             border: 2px solid transparent;
-            transition: transform 0.15s ease, border-color 0.15s ease;
+            transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
             position: relative;
+            overflow: hidden;
         }
 
         .roleta-card img {
-            max-width: 60%;
-            max-height: 32px;
+            max-width: 70%;
+            max-height: 55px;
             object-fit: contain;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+            transition: transform 0.25s;
         }
 
-        .roleta-card:active {
-            transform: scale(0.92);
+        .roleta-card:hover {
+            transform: scale(1.05);
+            background: #2a2a30;
         }
 
-        .roleta-card.active {
+        .roleta-card.active, .roleta-card:focus {
             border-color: var(--netflix-red);
-            background: #25252b;
-            box-shadow: 0 4px 15px rgba(229, 9, 20, 0.4);
+            background: #222228;
+            box-shadow: 0 6px 20px rgba(229, 9, 20, 0.4);
+            transform: scale(1.08);
+            outline: none;
         }
 
         .roleta-card-name {
-            font-size: 0.5rem;
+            font-size: 0.6rem;
             font-weight: 700;
             color: #ccc;
-            margin-top: 2px;
+            margin-top: 4px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -219,18 +242,15 @@
             text-align: center;
         }
 
-        /* ================= DESKTOP / TV ================= */
-        @media (min-width: 768px) {
-            header { height: 60px; padding: 0 24px; }
-            .brand-logo { font-size: 1.2rem; }
-            #main-content { height: calc(100% - 60px); }
-            #roleta-section { height: 150px; padding: 0 20px; background: rgba(20, 20, 24, 0.95); backdrop-filter: blur(10px); }
-            .roleta-titulo { font-size: 0.75rem; margin-bottom: 8px; }
-            .roleta-card { flex: 0 0 140px; height: 85px; padding: 8px; border-radius: 10px; }
-            .roleta-card img { max-height: 50px; }
-            .roleta-card-name { font-size: 0.6rem; margin-top: 4px; }
-            .player-info-overlay { top: 20px; left: 20px; padding: 8px 16px; }
-            .player-channel-name { font-size: 1rem; }
+        @media (max-width: 768px) {
+            #roleta-section {
+                height: 145px;
+                padding: 0 10px;
+            }
+            .roleta-card {
+                flex: 0 0 115px;
+                height: 75px;
+            }
         }
     </style>
 </head>
@@ -250,23 +270,86 @@
             <div id="player-channel-group" class="player-channel-group">AGUARDE</div>
         </div>
         <div id="player-container">
-            <video id="video-player" controls autoplay playsinline></video>
+            <video id="video" controls autoplay playsinline></video>
         </div>
     </div>
 
     <div id="roleta-section">
-        <div class="roleta-titulo">Canais Disponíveis</div>
+        <div class="roleta-titulo">Canais Disponíveis (Use as setas do controle)</div>
         <div id="roleta-container" class="roleta-container" tabindex="0"></div>
     </div>
 
     <script>
+        const video = document.getElementById('video');
         const roletaContainer = document.getElementById('roleta-container');
+        const statusText = document.getElementById('status-text');
+        const statusDot = document.getElementById('status-dot');
         const playerChannelName = document.getElementById('player-channel-name');
         const playerChannelGroup = document.getElementById('player-channel-group');
-        const videoPlayer = document.getElementById('video-player');
 
+        let hls;
+        let currentUrl = "";
+        let lastTime = 0;
+        let stallCount = 0;
         let currentIndex = 0;
-        let hlsInstance = null;
+        let uiTimeout = null;
+
+        // Função para mostrar a barra de canais e reiniciar o temporizador de 15 segundos para sumir
+        function showUI() {
+            document.body.classList.remove('hide-ui');
+            clearTimeout(uiTimeout);
+            uiTimeout = setTimeout(() => {
+                document.body.classList.add('hide-ui');
+            }, 15000); // 15 segundos inativo
+        }
+
+        // Eventos que detectam movimento do mouse, toque na tela ou teclas do controle
+        window.addEventListener('mousemove', showUI);
+        window.addEventListener('touchstart', showUI);
+        window.addEventListener('keydown', showUI);
+
+        // Força a entrada em tela cheia e libera o áudio no primeiro clique/toque de inicialização da página
+        function ativarTelaCheiaInicial() {
+            video.muted = false;
+            video.play().catch(() => {});
+            const elem = document.documentElement;
+            if (!document.fullscreenElement) {
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen().catch(() => {});
+                } else if (elem.webkitRequestFullscreen) {
+                    elem.webkitRequestFullscreen();
+                } else if (elem.msRequestFullscreen) {
+                    elem.msRequestFullscreen();
+                }
+            }
+            // Remove o ouvinte inicial após o primeiro toque para não atrapalhar
+            window.removeEventListener('click', ativarTelaCheiaInicial);
+            window.removeEventListener('keydown', ativarTelaCheiaInicial);
+        }
+
+        window.addEventListener('click', ativarTelaCheiaInicial, { once: true });
+        window.addEventListener('keydown', ativarTelaCheiaInicial, { once: true });
+
+        function startAntiStall() {
+            setInterval(() => {
+                if (currentUrl && !video.paused) {
+                    if (video.currentTime === lastTime) {
+                        stallCount++;
+                        statusText.innerText = `RECONECTANDO (${5 - stallCount}s)`;
+                        statusDot.className = "dot loading";
+                        if (stallCount >= 5) {
+                            tocar(canaisArray[currentIndex]);
+                            stallCount = 0;
+                        }
+                    } else {
+                        stallCount = 0;
+                        statusText.innerText = "AO VIVO";
+                        statusDot.className = "dot";
+                        lastTime = video.currentTime;
+                    }
+                }
+            }, 1000);
+        }
 
         function tocar(canalObj, elemento, index) {
             document.querySelectorAll('.roleta-card').forEach(el => el.classList.remove('active'));
@@ -276,37 +359,44 @@
                 if (index !== undefined) currentIndex = index;
             }
 
+            currentUrl = canalObj.url;
             playerChannelName.innerText = canalObj.nome.toUpperCase();
             playerChannelGroup.innerText = canalObj.grupo;
 
-            // Destrói instância anterior do HLS se existir
-            if (hlsInstance) {
-                hlsInstance.destroy();
-                hlsInstance = null;
-            }
-
-            // Se for o canal próprio da KBS TV, tratamos direto no nativo do browser sem requisições XHR do hls.js
-            if (canalObj.url.includes('kbstvpro.com.br')) {
-                videoPlayer.src = canalObj.url;
-                videoPlayer.load();
-                videoPlayer.play().catch(e => console.log("Autoplay bloqueado pelo browser"));
-                return;
-            }
-
-            // Para os demais canais da lista, usamos o HLS.js normalmente
+            if (hls) hls.destroy();
+            
             if (Hls.isSupported()) {
-                hlsInstance = new Hls();
-                hlsInstance.loadSource(canalObj.url);
-                hlsInstance.attachMedia(videoPlayer);
-                hlsInstance.on(Hls.Events.MANIFEST_PARSED, function() {
-                    videoPlayer.play().catch(e => console.log("Autoplay bloqueado pelo browser"));
+                hls = new Hls({
+                    manifestLoadingMaxRetry: 10,
+                    levelLoadingMaxRetry: 10
                 });
-            } else if (videoPlayer.canPlayType('application/vnd.apple.mpegurl')) {
-                videoPlayer.src = canalObj.url;
-                videoPlayer.addEventListener('loadedmetadata', function() {
-                    videoPlayer.play().catch(e => console.log("Autoplay bloqueado"));
+                hls.loadSource(canalObj.url);
+                hls.attachMedia(video);
+                hls.on(Hls.Events.MANIFEST_PARSED, () => { 
+                    video.play().catch(() => {}); 
+                    statusText.innerText = "AO VIVO";
                 });
+                hls.on(Hls.Events.ERROR, (event, data) => { 
+                    if(data.fatal) {
+                        switch(data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                hls.startLoad();
+                                break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                hls.recoverMediaError();
+                                break;
+                            default:
+                                hls.destroy();
+                                break;
+                        }
+                    }
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = canalObj.url;
+                video.play().catch(() => {});
             }
+
+            showUI(); // Mostra a interface ao trocar de canal e reinicia o timer
         }
 
         const m3u = `
@@ -493,6 +583,7 @@ https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8
         }
 
         const canais = parseM3U(m3u);
+        const canaisArray = canais; 
         const cardsElements = [];
         const fragment = document.createDocumentFragment();
 
@@ -526,10 +617,13 @@ https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8
 
         window.addEventListener('load', () => {
             roletaContainer.focus();
+            showUI(); // Já inicia mostrando a interface
         });
 
         window.addEventListener('keydown', (e) => {
             if (canais.length === 0) return;
+
+            showUI(); // Acende a barra sempre que apertar qualquer tecla
 
             if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
                 e.preventDefault();
@@ -546,6 +640,8 @@ https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8
                 tocar(canais[currentIndex], cardsElements[currentIndex], currentIndex);
             }
         });
+
+        startAntiStall();
     </script>
 </body>
 </html>
