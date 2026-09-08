@@ -270,7 +270,7 @@
             <div id="player-channel-group" class="player-channel-group">AGUARDE</div>
         </div>
         <div id="player-container">
-            <video id="video" controls autoplay playsinline></video>
+            <video id="video" controls autoplay playsinline preload="auto"></video>
         </div>
     </div>
 
@@ -294,21 +294,18 @@
         let currentIndex = 0;
         let uiTimeout = null;
 
-        // Função para mostrar a barra de canais e reiniciar o temporizador de 15 segundos para sumir
         function showUI() {
             document.body.classList.remove('hide-ui');
             clearTimeout(uiTimeout);
             uiTimeout = setTimeout(() => {
                 document.body.classList.add('hide-ui');
-            }, 15000); // 15 segundos inativo
+            }, 15000);
         }
 
-        // Eventos que detectam movimento do mouse, toque na tela ou teclas do controle
         window.addEventListener('mousemove', showUI);
         window.addEventListener('touchstart', showUI);
         window.addEventListener('keydown', showUI);
 
-        // Força a entrada em tela cheia e libera o áudio no primeiro clique/toque de inicialização da página
         function ativarTelaCheiaInicial() {
             video.muted = false;
             video.play().catch(() => {});
@@ -322,7 +319,6 @@
                     elem.msRequestFullscreen();
                 }
             }
-            // Remove o ouvinte inicial após o primeiro toque para não atrapalhar
             window.removeEventListener('click', ativarTelaCheiaInicial);
             window.removeEventListener('keydown', ativarTelaCheiaInicial);
         }
@@ -367,8 +363,15 @@
             
             if (Hls.isSupported()) {
                 hls = new Hls({
-                    manifestLoadingMaxRetry: 10,
-                    levelLoadingMaxRetry: 10
+                    // Otimizações de velocidade de abertura (Low-Latency / Fast Start)
+                    maxBufferLength: 10,
+                    maxMaxBufferLength: 20,
+                    liveSyncDurationCount: 2,
+                    liveMaxLatencyDurationCount: 5,
+                    enableWorker: true,
+                    lowLatencyMode: true,
+                    manifestLoadingMaxRetry: 5,
+                    levelLoadingMaxRetry: 5
                 });
                 hls.loadSource(canalObj.url);
                 hls.attachMedia(video);
@@ -396,7 +399,7 @@
                 video.play().catch(() => {});
             }
 
-            showUI(); // Mostra a interface ao trocar de canal e reinicia o timer
+            showUI();
         }
 
         const m3u = `
@@ -616,13 +619,13 @@ https://stmv7.voxtvhd.com.br/liberdadebetel/liberdadebetel/playlist.m3u8
 
         window.addEventListener('load', () => {
             roletaContainer.focus();
-            showUI(); // Já inicia mostrando a interface
+            showUI();
         });
 
         window.addEventListener('keydown', (e) => {
             if (canais.length === 0) return;
 
-            showUI(); // Acende a barra sempre que apertar qualquer tecla
+            showUI();
 
             if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
                 e.preventDefault();
