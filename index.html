@@ -359,27 +359,42 @@
             playerChannelName.innerText = canalObj.nome.toUpperCase();
             playerChannelGroup.innerText = canalObj.grupo;
 
-            if (hls) hls.destroy();
+            if (hls) {
+                hls.destroy();
+                hls = null;
+            }
             
             if (Hls.isSupported()) {
+                // CONFIGURAÇÕES EXTREMAS DE BAIXA LATÊNCIA E INÍCIO INSTANTÂNEO (< 2s)
                 hls = new Hls({
-                    // Otimizações de velocidade de abertura (Low-Latency / Fast Start)
-                    maxBufferLength: 10,
-                    maxMaxBufferLength: 20,
-                    liveSyncDurationCount: 2,
-                    liveMaxLatencyDurationCount: 5,
+                    liveSyncDurationCount: 1,      // Sincroniza logo no primeiro segmento ao vivo
+                    liveMaxLatencyDurationCount: 3,
                     enableWorker: true,
                     lowLatencyMode: true,
-                    manifestLoadingMaxRetry: 5,
-                    levelLoadingMaxRetry: 5
+                    maxBufferLength: 5,          // Buffer enxuto para iniciar imediatamente
+                    maxMaxBufferLength: 10,
+                    maxBufferSize: 30 * 1000 * 1000,
+                    maxBufferHole: 0.1,
+                    highBufferWatchdogPeriod: 1,
+                    nudgeOffset: 0.1,
+                    nudgeMaxRetry: 5,
+                    maxFragLookUpTolerance: 0.2,
+                    liveSyncDuration: 0.5,
+                    manifestLoadingMaxRetry: 3,
+                    levelLoadingMaxRetry: 3
                 });
+
                 hls.loadSource(canalObj.url);
                 hls.attachMedia(video);
-                hls.on(Hls.Events.MANIFEST_PARSED, () => { 
-                    video.play().catch(() => {}); 
-                    statusText.innerText = "AO VIVO";
+                
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    video.play().then(() => {
+                        statusText.innerText = "AO VIVO";
+                        statusDot.className = "dot";
+                    }).catch(() => {});
                 });
-                hls.on(Hls.Events.ERROR, (event, data) => { 
+
+                hls.on(Hls.Events.ERROR, (event, data) => {
                     if(data.fatal) {
                         switch(data.type) {
                             case Hls.ErrorTypes.NETWORK_ERROR:
