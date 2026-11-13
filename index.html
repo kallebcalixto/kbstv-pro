@@ -161,7 +161,6 @@
             transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease;
         }
 
-        /* Estado Oculto da barra */
         body.hide-ui header,
         body.hide-ui #roleta-section,
         body.hide-ui .player-info-overlay {
@@ -287,7 +286,7 @@
         const playerChannelName = document.getElementById('player-channel-name');
         const playerChannelGroup = document.getElementById('player-channel-group');
 
-        let hls;
+        let hls = null;
         let currentUrl = "";
         let lastTime = 0;
         let stallCount = 0;
@@ -359,44 +358,49 @@
             playerChannelName.innerText = canalObj.nome.toUpperCase();
             playerChannelGroup.innerText = canalObj.grupo;
 
+            // Limpa instâncias anteriores com segurança
             if (hls) {
+                hls.stopLoad();
+                hls.detachMedia();
                 hls.destroy();
                 hls = null;
             }
-            
+            video.removeAttribute('src');
+            video.load();
+
+            statusText.innerText = "CARREGANDO";
+            statusDot.className = "dot loading";
+
+            // Tenta HLS.js otimizado para abertura veloz
             if (Hls.isSupported()) {
-                // CONFIGURAÇÕES EXTREMAS DE BAIXA LATÊNCIA E INÍCIO INSTANTÂNEO (< 2s)
                 hls = new Hls({
-                    liveSyncDurationCount: 1,      // Sincroniza logo no primeiro segmento ao vivo
-                    liveMaxLatencyDurationCount: 3,
+                    liveSyncDurationCount: 2,
+                    liveMaxLatencyDurationCount: 5,
                     enableWorker: true,
                     lowLatencyMode: true,
-                    maxBufferLength: 5,          // Buffer enxuto para iniciar imediatamente
-                    maxMaxBufferLength: 10,
-                    maxBufferSize: 30 * 1000 * 1000,
-                    maxBufferHole: 0.1,
-                    highBufferWatchdogPeriod: 1,
-                    nudgeOffset: 0.1,
-                    nudgeMaxRetry: 5,
-                    maxFragLookUpTolerance: 0.2,
-                    liveSyncDuration: 0.5,
+                    maxBufferLength: 10,
+                    maxMaxBufferLength: 20,
                     manifestLoadingMaxRetry: 3,
                     levelLoadingMaxRetry: 3
                 });
 
                 hls.loadSource(canalObj.url);
                 hls.attachMedia(video);
-                
+
                 hls.on(Hls.Events.MANIFEST_PARSED, () => {
                     video.play().then(() => {
                         statusText.innerText = "AO VIVO";
                         statusDot.className = "dot";
-                    }).catch(() => {});
+                    }).catch(() => {
+                        // Se houver restrição de autoplay, destrava com click/mute
+                        video.muted = true;
+                        video.play();
+                    });
                 });
 
                 hls.on(Hls.Events.ERROR, (event, data) => {
-                    if(data.fatal) {
-                        switch(data.type) {
+                    if (data.fatal) {
+                        switch (data.type) {
                             case Hls.ErrorTypes.NETWORK_ERROR:
                                 hls.startLoad();
                                 break;
@@ -404,14 +408,21 @@
                                 hls.recoverMediaError();
                                 break;
                             default:
+                                // Fallback nativo caso o stream recuse o hls.js
                                 hls.destroy();
+                                video.src = canalObj.url;
+                                video.play().catch(() => {});
                                 break;
                         }
                     }
                 });
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                // Suporte nativo (Safari / algumas TVs WebOS/Tizen modernas)
                 video.src = canalObj.url;
-                video.play().catch(() => {});
+                video.play().then(() => {
+                    statusText.innerText = "AO VIVO";
+                    statusDot.className = "dot";
+                }).catch(() => {});
             }
 
             showUI();
